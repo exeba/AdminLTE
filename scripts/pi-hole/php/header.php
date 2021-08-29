@@ -75,35 +75,74 @@
     }
     // Get number of processing units available to PHP
     // (may be less than the number of online processors)
-    $nproc = shell_exec('nproc');
-    if(!is_numeric($nproc))
+    if (file_exists("/proc/cpuinfo"))
     {
-        $cpuinfo = file_get_contents('/proc/cpuinfo');
-        preg_match_all('/^processor/m', $cpuinfo, $matches);
-        $nproc = count($matches[0]);
-    }
-
-    // Get memory usage
-    $data = explode("\n", file_get_contents("/proc/meminfo"));
-    $meminfo = array();
-    if(count($data) > 0)
-    {
-        foreach ($data as $line) {
-            $expl = explode(":", trim($line));
-            if(count($expl) == 2)
-            {
-                // remove " kB" from the end of the string and make it an integer
-                $meminfo[$expl[0]] = intval(substr($expl[1],0, -3));
-            }
+        $nproc = shell_exec('nproc');
+        if(!is_numeric($nproc))
+        {
+            $cpuinfo = file_get_contents('/proc/cpuinfo');
+            preg_match_all('/^processor/m', $cpuinfo, $matches);
+            $nproc = count($matches[0]);
         }
-        $memory_used = $meminfo["MemTotal"]-$meminfo["MemFree"]-$meminfo["Buffers"]-$meminfo["Cached"];
-        $memory_total = $meminfo["MemTotal"];
-        $memory_usage = $memory_used/$memory_total;
     }
     else
     {
-        $memory_usage = -1;
+        $nproc = shell_exec('sysctl -n hw.ncpu');
     }
+    
+    // Get memory usage
+    $meminfo = array();
+    if (file_exists("/proc/meminfo"))
+    {
+        // Linux
+        $data = explode("\n", file_get_contents("/proc/meminfo"));
+        if(count($data) > 0)
+        {
+            foreach ($data as $line) {
+                $expl = explode(":", trim($line));
+                if(count($expl) == 2)
+                {
+                    // remove " kB" from the end of the string and make it an integer
+                    $meminfo[$expl[0]] = intval(substr($expl[1],0, -3));
+                }
+            }
+            $memory_used = $meminfo["MemTotal"]-$meminfo["MemFree"]-$meminfo["Buffers"]-$meminfo["Cached"];
+            $memory_total = $meminfo["MemTotal"];
+        }
+    }
+    else
+    {
+        // FreeBSD
+        // Taken from 'sys/compat/linprocfs/linprocfs.c'
+        $sysctl_output = shell_exec('sysctl '.join(' ',[
+            'hw.physmem',
+            'vm.stats.vm.v_free_count',
+            'vm.stats.vm.v_active_count',
+            'vm.stats.vm.v_inactive_count',
+            'vm.stats.vm.v_laundry_count',
+            'vfs.bufspace',
+        ]));
+        $data = explode("\n", $sysctl_output);
+        if(count($data) > 0)
+        {
+            foreach ($data as $line) {
+                $expl = explode(":", trim($line));
+                if(count($expl) == 2)
+                {
+                    // remove " kB" from the end of the string and make it an integer
+                    $meminfo[$expl[0]] = intval($expl[1]);
+                }
+            }
+            $memory_used = $meminfo["hw.physmem"]
+                -$meminfo["vm.stats.vm.v_free_count"]
+                -$meminfo["vfs.bufspace"]
+                -$meminfo["vm.stats.vm.v_active_count"]
+                -$meminfo["vm.stats.vm.v_inactive_count"]
+                -$meminfo["vm.stats.vm.v_laundry_count"];
+            $memory_total = $meminfo["hw.physmem"];
+        }
+    }
+    $memory_usage = $meminfo ? $memory_used/$memory_total : -1;
 
     if($auth) {
         // For session timer
