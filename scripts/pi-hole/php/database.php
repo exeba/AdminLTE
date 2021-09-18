@@ -6,31 +6,33 @@
 *    This file is copyright under the latest version of the EUPL.
 *    Please see LICENSE file for your rights under this license */
 
+require_once __DIR__.'/func.php';
+
 function getGravityDBFilename()
 {
 	// Get possible non-standard location of FTL's database
-	$FTLsettings = parse_ini_file("/etc/pihole/pihole-FTL.conf");
+	$FTLsettings = parse_ini_file(getPiholeFilePath("pihole-FTL.conf"));
 	if(isset($FTLsettings["GRAVITYDB"]))
 	{
 		return $FTLsettings["GRAVITYDB"];
 	}
 	else
 	{
-		return "/etc/pihole/gravity.db";
+		return getPiholeFilePath("gravity.db");
 	}
 }
 
 function getQueriesDBFilename()
 {
 	// Get possible non-standard location of FTL's database
-	$FTLsettings = parse_ini_file("/etc/pihole/pihole-FTL.conf");
+	$FTLsettings = parse_ini_file(getPiholeFilePath("pihole-FTL.conf"));
 	if(isset($FTLsettings["DBFILE"]))
 	{
 		return $FTLsettings["DBFILE"];
 	}
 	else
 	{
-		return "/etc/pihole/pihole-FTL.db";
+		return getPiholeFilePath("pihole-FTL.db");
 	}
 }
 

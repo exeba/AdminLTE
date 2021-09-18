@@ -5,11 +5,12 @@
 *
 *    This file is copyright under the latest version of the EUPL.
 *    Please see LICENSE file for your rights under this license. */
+require_once "scripts/pi-hole/php/func.php";
 require "scripts/pi-hole/php/header.php";
 require "scripts/pi-hole/php/savesettings.php";
 require_once "scripts/pi-hole/php/FTL.php";
 // Reread ini file as things might have been changed
-$setupVars = parse_ini_file("/etc/pihole/setupVars.conf");
+$setupVars = parse_ini_file(getPiholeFilePath("pihole-FTL.conf"));
 $piholeFTLConf = piholeFTLConfig();
 
 // Handling of PHP internal errors
@@ -634,7 +635,7 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                             if ($DHCP) {
                                 // Read leases file
                                 $leasesfile = true;
-                                $dhcpleases = @fopen('/etc/pihole/dhcp.leases', 'r');
+                                $dhcpleases = @fopen(getPiholeFilePath('dhcp.leases'), 'r');
                                 if (!is_resource($dhcpleases))
                                     $leasesfile = false;
 

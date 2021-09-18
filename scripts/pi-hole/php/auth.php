@@ -30,7 +30,7 @@ function log_and_die($message) {
 }
 
 function check_cors() {
-    $setupVars = parse_ini_file("/etc/pihole/setupVars.conf");
+    $setupVars = parse_ini_file(getPiholeFilePath("setupVars.conf"));
     $ipv4 = isset($setupVars["IPV4_ADDRESS"]) ? explode("/", $setupVars["IPV4_ADDRESS"])[0] : $_SERVER['SERVER_ADDR'];
     $ipv6 = isset($setupVars["IPV6_ADDRESS"]) ? explode("/", $setupVars["IPV6_ADDRESS"])[0] : $_SERVER['SERVER_ADDR'];
 

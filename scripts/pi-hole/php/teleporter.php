@@ -592,10 +592,10 @@ else
 	archive_add_table("adlist_by_group.json", "adlist_by_group");
 	archive_add_table("client_by_group.json", "client_by_group");
 
-	archive_add_file("/etc/pihole/","setupVars.conf");
-	archive_add_file("/etc/pihole/","dhcp.leases");
-	archive_add_file("/etc/pihole/","custom.list");
-	archive_add_file("/etc/pihole/","pihole-FTL.conf");
+	archive_add_file(getPiholeFilePath(""),"setupVars.conf");
+	archive_add_file(getPiholeFilePath(""),"dhcp.leases");
+	archive_add_file(getPiholeFilePath(""),"custom.list");
+	archive_add_file(getPiholeFilePath(""),"pihole-FTL.conf");
 	archive_add_file("/etc/","hosts","etc/");
 	archive_add_directory("/etc/dnsmasq.d/","dnsmasq.d/");
 

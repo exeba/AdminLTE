@@ -6,6 +6,15 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
+require_once __DIR__.'/vars.php';
+
+function getPiholeFilePath($relativePath)
+{
+    global $piholeDir;
+
+    return "$piholeDir/$relativePath";
+}
+
 function is_valid_domain_name($domain_name)
 {
     return (preg_match("/^((-|_)*[a-z\d]((-|_)*[a-z\d])*(-|_)*)(\.(-|_)*([a-z\d]((-|_)*[a-z\d])*))*$/i", $domain_name) && // Valid chars check
@@ -82,7 +91,7 @@ function pihole_execute($argument_string, $error_on_failure = true) {
 }
 
 // Custom DNS
-$customDNSFile = "/etc/pihole/custom.list";
+$customDNSFile = getPiholeFilePath("custom.list");
 
 function echoCustomDNSEntries()
 {

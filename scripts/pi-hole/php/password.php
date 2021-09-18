@@ -16,7 +16,7 @@
     session_start();
 
     // Read setupVars.conf file
-    $setupVars = parse_ini_file("/etc/pihole/setupVars.conf");
+    $setupVars = parse_ini_file(getPiholeFilePath("setupVars.conf"));
     // Try to read password hash from setupVars.conf
     if(isset($setupVars['WEBPASSWORD']))
     {

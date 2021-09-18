@@ -1,8 +1,10 @@
 <?php
 
-$localversions = "/etc/pihole/localversions";
-$localbranches = "/etc/pihole/localbranches";
-$GitHubVersions = "/etc/pihole/GitHubVersions";
+require_once __DIR__.'/func.php';
+
+$localversions = getPiholeFilePath("localversions");
+$localbranches = getPiholeFilePath("localbranches");
+$GitHubVersions = getPiholeFilePath("GitHubVersions");
 
 if(!is_readable($localversions) || !is_readable($localbranches) || !is_readable($GitHubVersions))
 {

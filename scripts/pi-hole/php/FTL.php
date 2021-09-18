@@ -6,7 +6,9 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-$piholeFTLConfFile = "/etc/pihole/pihole-FTL.conf";
+require_once __DIR__.'/func.php';
+
+$piholeFTLConfFile = getPiholeFilePath("pihole-FTL.conf");
 
 function piholeFTLConfig()
 {

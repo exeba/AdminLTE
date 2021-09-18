@@ -6,6 +6,8 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
+require_once __DIR__.'/func.php';
+
 if(!in_array(basename($_SERVER['SCRIPT_FILENAME']), ["settings.php", "teleporter.php"], true))
 {
 	die("Direct access to this script is forbidden!");
@@ -163,7 +165,7 @@ function readDNSserversList()
 {
 	// Reset list
 	$list = [];
-	$handle = @fopen("/etc/pihole/dns-servers.conf", "r");
+	$handle = @fopen(getPiholeFilePath("dns-servers.conf"), "r");
 	if ($handle)
 	{
 		while (($line = fgets($handle)) !== false)
