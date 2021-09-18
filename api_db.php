@@ -11,6 +11,7 @@ header('Content-type: application/json');
 require("scripts/pi-hole/php/database.php");
 require("scripts/pi-hole/php/password.php");
 require("scripts/pi-hole/php/auth.php");
+require_once("scripts/pi-hole/php/func.php");
 check_cors();
 
 // Set maximum execution time to 10 minutes
@@ -307,7 +308,7 @@ if (isset($_GET['getQueriesCount']) && $auth)
 
 if (isset($_GET['getDBfilesize']) && $auth)
 {
-	$filesize = filesize("/etc/pihole/pihole-FTL.db");
+	$filesize = filesize(getPiholeFilePath("pihole-FTL.db"));
 	$result = array('filesize' => $filesize);
 	$data = array_merge($data, $result);
 }
