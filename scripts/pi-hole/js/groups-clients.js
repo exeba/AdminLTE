@@ -69,7 +69,7 @@ $(function () {
   $("select").select2({
     tags: true,
     placeholder: "Select client...",
-    allowClear: true
+    allowClear: true,
   });
 
   reloadClientSuggestions();
@@ -87,7 +87,7 @@ function initTable() {
     ajax: {
       url: "scripts/pi-hole/php/groups.php",
       data: { action: "get_clients", token: token },
-      type: "POST"
+      type: "POST",
     },
     order: [[0, "asc"]],
     columns: [
@@ -95,7 +95,7 @@ function initTable() {
       { data: "ip", type: "ip-address" },
       { data: "comment" },
       { data: "groups", searchable: false },
-      { data: "name", width: "80px", orderable: false }
+      { data: "name", width: "80px", orderable: false },
     ],
     drawCallback: function () {
       $('button[id^="deleteClient_"]').on("click", deleteClient);
@@ -214,7 +214,7 @@ function initTable() {
       "<'row'<'col-sm-5'i><'col-sm-7'p>>",
     lengthMenu: [
       [10, 25, 50, 100, -1],
-      [10, 25, 50, 100, "All"]
+      [10, 25, 50, 100, "All"],
     ],
     stateSave: true,
     stateSaveCallback: function (settings, data) {
@@ -232,7 +232,7 @@ function initTable() {
       data.columns[0].visible = false;
       // Apply loaded state to table
       return data;
-    }
+    },
   });
 
   // Disable autocorrect in the search box
@@ -260,7 +260,7 @@ function initTable() {
 }
 
 function addClient() {
-  var ip = $("#select").val().trim();
+  var ip = utils.escapeHtml($("#select").val().trim());
   var comment = utils.escapeHtml($("#new_comment").val());
 
   utils.disableAll();
@@ -276,7 +276,7 @@ function addClient() {
   // - IPv4 address (with and without CIDR)
   // - IPv6 address (with and without CIDR)
   // - MAC address (in the form AA:BB:CC:DD:EE:FF)
-  // - host name (arbitrary form, we're only checking against some reserved charaters)
+  // - host name (arbitrary form, we're only checking against some reserved characters)
   if (utils.validateIPv4CIDR(ip) || utils.validateIPv6CIDR(ip) || utils.validateMAC(ip)) {
     // Convert input to upper case (important for MAC addresses)
     ip = ip.toUpperCase();
@@ -310,7 +310,7 @@ function addClient() {
       utils.enableAll();
       utils.showAlert("error", "", "Error while adding new client", jqXHR.responseText);
       console.log(exception); // eslint-disable-line no-console
-    }
+    },
   });
 }
 
@@ -354,7 +354,7 @@ function editClient() {
       id: id,
       groups: groups,
       token: token,
-      comment: comment
+      comment: comment,
     },
     success: function (response) {
       utils.enableAll();
@@ -378,14 +378,14 @@ function editClient() {
         jqXHR.responseText
       );
       console.log(exception); // eslint-disable-line no-console
-    }
+    },
   });
 }
 
 function deleteClient() {
   var tr = $(this).closest("tr");
   var id = tr.attr("data-id");
-  var ip = tr.find("#ip_" + id).text();
+  var ip = utils.escapeHtml(tr.find("#ip_" + id).text());
   var name = utils.escapeHtml(tr.find("#name_" + id).text());
 
   if (name.length > 0) {
@@ -413,6 +413,6 @@ function deleteClient() {
       utils.enableAll();
       utils.showAlert("error", "", "Error while deleting client with ID " + id, jqXHR.responseText);
       console.log(exception); // eslint-disable-line no-console
-    }
+    },
   });
 }

@@ -42,7 +42,7 @@ if (isset($_POST["submit"])) {
         <button type="button" class="close" data-hide="alert" aria-label="Close"><span aria-hidden="true">&times;</span>
         </button>
         <h4><i class="icon fa fa-exclamation-triangle"></i> Debug</h4>
-        <pre><?php print_r($_POST); ?></pre>
+        <pre><?php print_r(htmlentities($_POST)); ?></pre>
     </div>
 <?php } ?>
 
@@ -64,9 +64,7 @@ if (isset($_POST["submit"])) {
     </div>
 <?php } ?>
 
-
 <?php
-// Networking
 if (isset($setupVars["PIHOLE_INTERFACE"])) {
     $piHoleInterface = $setupVars["PIHOLE_INTERFACE"];
 } else {
@@ -77,29 +75,7 @@ if (isset($setupVars["IPV4_ADDRESS"])) {
 } else {
     $piHoleIPv4 = "unknown";
 }
-$IPv6connectivity = false;
-if (isset($setupVars["IPV6_ADDRESS"])) {
-    $piHoleIPv6 = $setupVars["IPV6_ADDRESS"];
-    sscanf($piHoleIPv6, "%2[0-9a-f]", $hexstr);
-    if (strlen($hexstr) == 2) {
-        // Convert HEX string to number
-        $hex = hexdec($hexstr);
-        // Global Unicast Address (2000::/3, RFC 4291)
-        $GUA = (($hex & 0x70) === 0x20);
-        // Unique Local Address   (fc00::/7, RFC 4193)
-        $ULA = (($hex & 0xfe) === 0xfc);
-        if ($GUA || $ULA) {
-            // Scope global address detected
-            $IPv6connectivity = true;
-        }
-    }
-} else {
-    $piHoleIPv6 = "unknown";
-}
-$hostname = trim(file_get_contents("/etc/hostname"), "\x00..\x1F");
-?>
 
-<?php
 // DNS settings
 $DNSservers = [];
 $DNSactive = [];
@@ -131,7 +107,7 @@ if (isset($setupVars["DNS_FQDN_REQUIRED"])) {
         $DNSrequiresFQDN = false;
     }
 } else {
-    $DNSrequiresFQDN = true;
+    $DNSrequiresFQDN = false;
 }
 
 if (isset($setupVars["DNS_BOGUS_PRIV"])) {
@@ -141,7 +117,7 @@ if (isset($setupVars["DNS_BOGUS_PRIV"])) {
         $DNSbogusPriv = false;
     }
 } else {
-    $DNSbogusPriv = true;
+    $DNSbogusPriv = false;
 }
 
 if (isset($setupVars["DNSSEC"])) {
@@ -196,14 +172,14 @@ if (isset($setupVars["API_EXCLUDE_DOMAINS"])) {
     $excludedDomains = [];
 }
 
-// Exluded clients in API Query Log call
+// Excluded clients in API Query Log call
 if (isset($setupVars["API_EXCLUDE_CLIENTS"])) {
     $excludedClients = explode(",", $setupVars["API_EXCLUDE_CLIENTS"]);
 } else {
     $excludedClients = [];
 }
 
-// Exluded clients
+// Excluded clients
 if (isset($setupVars["API_QUERY_LOG_SHOW"])) {
     $queryLog = $setupVars["API_QUERY_LOG_SHOW"];
 } else {
@@ -220,7 +196,7 @@ if (isset($setupVars["API_PRIVACY_MODE"])) {
 ?>
 
 <?php
-if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "dns", "piholedhcp", "api", "privacy", "teleporter"))) {
+if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "dns", "piholedhcp", "api", "privacy", "teleporter"))) {
     $tab = $_GET['tab'];
 } else {
     $tab = "sysadmin";
@@ -232,9 +208,6 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
             <ul class="nav nav-tabs" role="tablist">
                 <li role="presentation"<?php if($tab === "sysadmin"){ ?> class="active"<?php } ?>>
                     <a href="#sysadmin" aria-controls="sysadmin" aria-expanded="<?php echo $tab === "sysadmin" ? "true" : "false"; ?>" role="tab" data-toggle="tab">System</a>
-                </li>
-                <li role="presentation"<?php if($tab === "adlists"){ ?> class="active"<?php } ?>>
-                    <a href="#adlists" aria-controls="adlists" aria-expanded="<?php echo $tab === "adlists" ? "true" : "false"; ?>" role="tab" data-toggle="tab">Adlists</a>
                 </li>
                 <li role="presentation"<?php if($tab === "dns"){ ?> class="active"<?php } ?>>
                     <a href="#dns" aria-controls="dns" aria-expanded="<?php echo $tab === "dns" ? "true" : "false"; ?>" role="tab" data-toggle="tab">DNS</a>
@@ -256,40 +229,7 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                 <!-- ######################################################### System admin ######################################################### -->
                 <div id="sysadmin" class="tab-pane fade<?php if($tab === "sysadmin"){ ?> in active<?php } ?>">
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="box">
-                                <div class="box-header with-border">
-                                    <h3 class="box-title">Network Information</h3>
-                                </div>
-                                <div class="box-body">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <table class="table table-striped table-bordered nowrap">
-                                                <tbody>
-                                                <tr>
-                                                    <th scope="row">Pi-hole Ethernet Interface:</th>
-                                                    <td><?php echo htmlentities($piHoleInterface); ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <th scope="row">Pi-hole IPv4 address:</th>
-                                                    <td><?php echo htmlentities($piHoleIPv4); ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <th scope="row">Pi-hole IPv6 address:</th>
-                                                    <td class="breakall"><?php echo htmlentities($piHoleIPv6); ?></td>
-                                                </tr>
-                                                <tr>
-                                                    <th scope="row">Pi-hole hostname:</th>
-                                                    <td><?php echo htmlentities($hostname); ?></td>
-                                                </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="box">
                                 <div class="box-header with-border">
                                     <h3 class="box-title">FTL Information</h3>
@@ -440,21 +380,6 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                         </div>
                     </div>
                 </div>
-                <!-- ######################################################### Adlists ######################################################### -->
-                <div id="adlists" class="tab-pane fade<?php if($tab === "adlists"){ ?> in active<?php } ?>">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="box">
-                                <div class="box-header with-border">
-                                    <h3 class="box-title">Adlists used to generate Pi-hole's Gravity</h3>
-                                </div>
-                                <div class="box-body">
-                                    <p>Please use the <a href="groups-adlists.php">group management pages</a> to edit the adlists used by Pi-hole.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <!-- ######################################################### DHCP ######################################################### -->
                 <div id="piholedhcp" class="tab-pane fade<?php if($tab === "piholedhcp"){ ?> in active<?php } ?>">
                     <?php
@@ -465,7 +390,7 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                         } else {
                             $DHCP = false;
                         }
-                        // Read setings from config file
+                        // Read settings from config file
                         if (isset($setupVars["DHCP_START"])) {
                             $DHCPstart = $setupVars["DHCP_START"];
                         } else {
@@ -823,14 +748,14 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                                                     <?php } ?>
                                                     <?php if (isset($value["v6_1"])) { ?>
                                                         <td title="<?php echo $value["v6_1"]; ?>">
-                                                            <div><input type="checkbox" name="DNSserver<?php echo $value["v6_1"]; ?>" id="DNS6server<?php echo $value["v6_1"]; ?>" value="true" <?php if (in_array($value["v6_1"], $DNSactive) && $IPv6connectivity){ ?>checked<?php } if (!$IPv6connectivity) { ?> disabled <?php } ?>><label for="DNS6server<?php echo $value["v6_1"]; ?>"></label></div>
+                                                            <div><input type="checkbox" name="DNSserver<?php echo $value["v6_1"]; ?>" id="DNS6server<?php echo $value["v6_1"]; ?>" value="true" <?php if (in_array($value["v6_1"], $DNSactive)){ ?>checked<?php } ?>><label for="DNS6server<?php echo $value["v6_1"]; ?>"></label></div>
                                                         </td>
                                                     <?php } else { ?>
                                                         <td></td>
                                                     <?php } ?>
                                                     <?php if (isset($value["v6_2"])) { ?>
                                                         <td title="<?php echo $value["v6_2"]; ?>">
-                                                            <div><input type="checkbox" name="DNSserver<?php echo $value["v6_2"]; ?>" id="DNS6server<?php echo $value["v6_2"]; ?>" value="true" <?php if (in_array($value["v6_2"], $DNSactive) && $IPv6connectivity){ ?>checked<?php } if (!$IPv6connectivity) { ?> disabled <?php } ?>><label for="DNS6server<?php echo $value["v6_2"]; ?>"></label></div>
+                                                            <div><input type="checkbox" name="DNSserver<?php echo $value["v6_2"]; ?>" id="DNS6server<?php echo $value["v6_2"]; ?>" value="true" <?php if (in_array($value["v6_2"], $DNSactive)){ ?>checked<?php } ?>><label for="DNS6server<?php echo $value["v6_2"]; ?>"></label></div>
                                                         </td>
                                                     <?php } else { ?>
                                                         <td></td>
@@ -958,11 +883,13 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                                             <div class="col-lg-12">
                                                 <div>
                                                     <input type="checkbox" name="DNSrequiresFQDN" id="DNSrequiresFQDN" title="domain-needed" <?php if ($DNSrequiresFQDN){ ?>checked<?php } ?>>
-                                                    <label for="DNSrequiresFQDN"><strong>Never forward non-FQDNs</strong></label>
+                                                    <label for="DNSrequiresFQDN"><strong>Never forward non-FQDN <code>A</code> and <code>AAAA</code> queries</strong></label>
                                                     <p>When there is a Pi-hole domain set and this box is
                                                     ticked, this asks FTL that this domain is purely
                                                     local and FTL may answer queries from <code>/etc/hosts</code> or DHCP leases
-                                                    but should never forward queries on that domain to any upstream servers.</p>
+                                                    but should never forward queries on that domain to any upstream servers.
+                                                    If Conditional Forwarding is enabled, unticking this box may cause a partial
+                                                    DNS loop under certain circumstances (e.g. if a client would send TLD DNSSEC queries).</p>
                                                 </div>
                                                 <div>
                                                     <input type="checkbox" name="DNSbogusPriv" id="DNSbogusPriv" title="bogus-priv" <?php if ($DNSbogusPriv){ ?>checked<?php } ?>>
@@ -990,7 +917,7 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                                                 </div>
                                                 <br>
                                                 <h4>Conditional forwarding</h4>
-                                                <p>If not configured as your DHCP server, Pi-hole  typically won't be able to
+                                                <p>If not configured as your DHCP server, Pi-hole typically won't be able to
                                                    determine the names of devices on your local network.  As a
                                                    result, tables such as Top Clients will only show IP addresses.</p>
                                                 <p>One solution for this is to configure Pi-hole to forward these
@@ -1011,6 +938,8 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                                                    devices ending in your local domain name will not leave your network, however, this is optional.
                                                    The local domain name must match the domain name specified
                                                    in your DHCP server for this to work. You can likely find it within the DHCP settings.</p>
+                                                <p>Enabling Conditional Forwarding will also forward all hostnames (i.e., non-FQDNs) to the router
+                                                   when "Never forward non-FQDNs" is <em>not</em> enabled.</p>
                                                 <div class="form-group">
                                                     <div>
                                                         <input type="checkbox" name="rev_server" id="rev_server" value="rev_server" <?php if(isset($rev_server) && ($rev_server == true)){ ?>checked<?php } ?>>
@@ -1243,6 +1172,14 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                                                 <label for="bargraphs"><strong>Use new Bar charts on dashboard</strong></label>
                                             </div>
                                         </div>
+                                      </div>
+                                      <div class="row">
+                                        <div class="col-md-12">
+                                            <div>
+                                                <input type="checkbox" name="colorfulQueryLog" id="colorfulQueryLog" value="no">
+                                                <label for="colorfulQueryLog"><strong>Colorful Query Log</strong></label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1314,7 +1251,7 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                         <?php if (extension_loaded('Phar')) { ?>
                         <form role="form" method="post" id="takeoutform"
                               action="scripts/pi-hole/php/teleporter.php"
-                              target="_blank" enctype="multipart/form-data">
+                              target="teleporter_iframe" enctype="multipart/form-data">
                             <input type="hidden" name="token" value="<?php echo $token ?>">
                             <div class="col-lg-6 col-md-12">
                                 <div class="box box-warning">
@@ -1395,7 +1332,15 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                                         <div class="row">
                                             <div class="col-lg-12">
                                                 <label for="zip_file">File input</label>
-                                                <input type="file" name="zip_file" id="zip_file">
+                                                <div class="input-group">
+                                                    <span class="input-group-btn">
+                                                        <span class="btn btn-default btn-file" tabindex="0">Browse...
+                                                            <input type="file" name="zip_file" id="zip_file" accept="application/gzip" tabindex="-1">
+                                                        </span>
+                                                    </span>
+                                                    <input type="text" id="zip_filename" class="form-control"
+                                                           placeholder="no file selected" readonly="readonly" tabindex="-1">
+                                                </div>
                                                 <p class="help-block">Upload only Pi-hole backup files.</p>
                                             </div>
                                         </div>
@@ -1409,11 +1354,40 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array("sysadmin", "adlists", "
                                         </div>
                                     </div>
                                     <div class="box-footer clearfix">
-                                        <button type="submit" class="btn btn-default" name="action" value="in">Restore</button>
+                                        <button type="submit" class="btn btn-default" name="action"
+                                                value="in" data-toggle="modal" data-target="#teleporterModal">Restore
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </form>
+                        <div class="modal fade" id="teleporterModal" role="dialog" data-keyboard="false"
+                             tabindex="-1" data-backdrop="static" aria-labelledby="teleporterModalLabel">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h4 class="modal-title" id="exampleModalLabel">Teleporter Import</h4>
+                                    </div>
+                                    <div class="modal-body">
+                                        <label class="control-label">Output:</label>
+                                        <div class="box no-margin no-border no-shadow">
+                                            <pre class="no-margin no-padding"><iframe class="col-xs-12 no-border no-padding"
+                                                                                      name="teleporter_iframe" height="100"
+                                                                                      tabindex="-1"></iframe></pre>
+                                            <div class="overlay">
+                                                <i class="fa fa-spinner fa-pulse"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" data-dismiss="modal" class="btn btn-default">Close</button>
+                                        <button type="button" data-dismiss="modal" class="btn btn-default hidden">
+                                            <i class="fas fa-sync"></i> Reload page
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <?php } else { ?>
                         <div class="col-lg-12">
                             <div class="box box-warning">

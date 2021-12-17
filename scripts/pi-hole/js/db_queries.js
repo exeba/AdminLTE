@@ -48,21 +48,21 @@ $(function () {
         Today: [moment().startOf("day"), moment()],
         Yesterday: [
           moment().subtract(1, "days").startOf("day"),
-          moment().subtract(1, "days").endOf("day")
+          moment().subtract(1, "days").endOf("day"),
         ],
         "Last 7 Days": [moment().subtract(6, "days"), moment()],
         "Last 30 Days": [moment().subtract(29, "days"), moment()],
         "This Month": [moment().startOf("month"), moment()],
         "Last Month": [
           moment().subtract(1, "month").startOf("month"),
-          moment().subtract(1, "month").endOf("month")
+          moment().subtract(1, "month").endOf("month"),
         ],
         "This Year": [moment().startOf("year"), moment()],
-        "All Time": [moment(0), moment()]
+        "All Time": [moment(0), moment()],
       },
       opens: "center",
       showDropdowns: true,
-      autoUpdateInput: false
+      autoUpdateInput: false,
     },
     function (startt, endt) {
       from = moment(startt).utc().valueOf() / 1000;
@@ -137,6 +137,12 @@ function getQueryTypes() {
     queryType.push([12, 13]);
   }
 
+  // 14 is defined above
+
+  if ($("#type_dbbusy").prop("checked")) {
+    queryType.push(15);
+  }
+
   return queryType.join(",");
 }
 
@@ -172,7 +178,7 @@ function refreshTableData() {
   var APIstring = "api_db.php?getAllQueries&from=" + from + "&until=" + until;
   // Check if query type filtering is enabled
   var queryType = getQueryTypes();
-  if (queryType !== "1,2,3,4,5,6") {
+  if (queryType !== "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15") {
     APIstring += "&types=" + queryType;
   }
 
@@ -194,97 +200,101 @@ $(function () {
 
   tableApi = $("#all-queries").DataTable({
     rowCallback: function (row, data) {
-      var fieldtext, buttontext, color;
+      var fieldtext,
+        buttontext = "",
+        blocked = false;
       switch (data[4]) {
         case 1:
-          color = "red";
-          fieldtext = "Blocked (gravity)";
+          fieldtext = "<span class='text-red'>Blocked (gravity)</span>";
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-green"><i class="fas fa-check"></i> Whitelist</button>';
+          blocked = true;
           break;
         case 2:
-          color = "green";
           fieldtext =
-            "OK <br class='hidden-lg'>(forwarded to " +
+            "<span class='text-green'>OK</span> (forwarded to <br class='hidden-lg'>" +
             (data.length > 5 && data[5] !== "N/A" ? data[5] : "") +
             ")";
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-red"><i class="fa fa-ban"></i> Blacklist</button>';
           break;
         case 3:
-          color = "green";
-          fieldtext = "OK <br class='hidden-lg'>(cached)";
+          fieldtext = "<span class='text-green'>OK</span> <br class='hidden-lg'>(cache)";
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-red"><i class="fa fa-ban"></i> Blacklist</button>';
           break;
         case 4:
-          color = "red";
-          fieldtext = "Blocked <br class='hidden-lg'>(regex blacklist)";
+          fieldtext = "<span class='text-red'>Blocked <br class='hidden-lg'>(regex blacklist)";
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-green"><i class="fas fa-check"></i> Whitelist</button>';
+          blocked = true;
           break;
         case 5:
-          color = "red";
-          fieldtext = "Blocked <br class='hidden-lg'>(exact blacklist)";
+          fieldtext = "<span class='text-red'>Blocked <br class='hidden-lg'>(exact blacklist)";
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-green"><i class="fas fa-check"></i> Whitelist</button>';
+          blocked = true;
           break;
         case 6:
-          color = "red";
-          fieldtext = "Blocked <br class='hidden-lg'>(external, IP)";
-          buttontext = "";
+          fieldtext = "<span class='text-red'>Blocked <br class='hidden-lg'>(external, IP)";
+          blocked = true;
           break;
         case 7:
-          color = "red";
-          fieldtext = "Blocked <br class='hidden-lg'>(external, NULL)";
-          buttontext = "";
+          fieldtext =
+            "<span class='text-red'>Blocked <br class='hidden-lg'>(external, NULL)</span>";
+          blocked = true;
           break;
         case 8:
-          color = "red";
-          fieldtext = "Blocked <br class='hidden-lg'>(external, NXRA)";
-          buttontext = "";
+          fieldtext =
+            "<span class='text-red'>Blocked <br class='hidden-lg'>(external, NXRA)</span>";
+          blocked = true;
           break;
         case 9:
-          color = "red";
-          fieldtext = "Blocked (gravity, CNAME)";
+          fieldtext = "<span class='text-red'>Blocked (gravity, CNAME)</span>";
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-green"><i class="fas fa-check"></i> Whitelist</button>';
+          blocked = true;
           break;
         case 10:
-          color = "red";
-          fieldtext = "Blocked <br class='hidden-lg'>(regex blacklist, CNAME)";
+          fieldtext =
+            "<span class='text-red'>Blocked <br class='hidden-lg'>(regex blacklist, CNAME)</span>";
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-green"><i class="fas fa-check"></i> Whitelist</button>';
+          blocked = true;
           break;
         case 11:
-          color = "red";
-          fieldtext = "Blocked <br class='hidden-lg'>(exact blacklist, CNAME)";
+          fieldtext =
+            "<span class='text-red'>Blocked <br class='hidden-lg'>(exact blacklist, CNAME)</span>";
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-green"><i class="fas fa-check"></i> Whitelist</button>';
+          blocked = true;
           break;
         case 12:
-          color = "green";
-          fieldtext = "Retried";
-          buttontext = "";
+          fieldtext = "<span class='text-green'>Retried</span>";
           break;
         case 13:
-          color = "green";
-          fieldtext = "Retried <br class='hidden-lg'>(ignored)";
-          buttontext = "";
+          fieldtext = "<span class='text-green'>Retried</span> <br class='hidden-lg'>(ignored)";
           break;
         case 14:
-          color = "green";
-          fieldtext = "OK <br class='hidden-lg'>(already forwarded)";
+          fieldtext =
+            "<span class='text-green'>OK</span> <br class='hidden-lg'>(already forwarded)";
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-red"><i class="fa fa-ban"></i> Blacklist</button>';
           break;
+        case 15:
+          fieldtext =
+            "<span class='text-orange'>Blocked <br class='hidden-lg'>(database is busy)</span>";
+          blocked = true;
+          break;
         default:
-          color = "black";
           fieldtext = "Unknown";
-          buttontext = "";
       }
 
-      $(row).css("color", color);
+      $(row).addClass(blocked === true ? "blocked-row" : "allowed-row");
+      if (localStorage.getItem("colorfulQueryLog_chkbox") === "true") {
+        $(row).addClass(blocked === true ? "text-red" : "text-green");
+      }
+
       $("td:eq(4)", row).html(fieldtext);
       $("td:eq(5)", row).html(buttontext);
 
@@ -310,7 +320,7 @@ $(function () {
           x[0] = x[0] * 1e6 + dataIndex++;
           return x;
         });
-      }
+      },
     },
     autoWidth: false,
     processing: true,
@@ -327,26 +337,26 @@ $(function () {
           }
 
           return data;
-        }
+        },
       },
       { width: "10%" },
       { width: "40%", render: $.fn.dataTable.render.text() },
       { width: "20%", type: "ip-address", render: $.fn.dataTable.render.text() },
       { width: "10%" },
-      { width: "5%" }
+      { width: "5%" },
     ],
     lengthMenu: [
       [10, 25, 50, 100, -1],
-      [10, 25, 50, 100, "All"]
+      [10, 25, 50, 100, "All"],
     ],
     columnDefs: [
       {
         targets: -1,
         data: null,
-        defaultContent: ""
-      }
+        defaultContent: "",
+      },
     ],
-    initComplete: reloadCallback
+    initComplete: reloadCallback,
   });
   $("#all-queries tbody").on("click", "button", function () {
     var data = tableApi.row($(this).parents("tr")).data();

@@ -14,7 +14,7 @@ function escapeHtml(text) {
     "<": "&lt;",
     ">": "&gt;",
     '"': "&quot;",
-    "'": "&#039;"
+    "'": "&#039;",
   };
 
   if (text === null) return null;
@@ -30,14 +30,24 @@ function unescapeHtml(text) {
     "&lt;": "<",
     "&gt;": ">",
     "&quot;": '"',
-    "&#039;": "'"
+    "&#039;": "'",
+    "&Uuml;": "Ü",
+    "&uuml;": "ü",
+    "&Auml;": "Ä",
+    "&auml;": "ä",
+    "&Ouml;": "Ö",
+    "&ouml;": "ö",
+    "&szlig;": "ß",
   };
 
   if (text === null) return null;
 
-  return text.replace(/&(?:amp|lt|gt|quot|#039);/g, function (m) {
-    return map[m];
-  });
+  return text.replace(
+    /&(?:amp|lt|gt|quot|#039|Uuml|uuml|Auml|auml|Ouml|ouml|szlig);/g,
+    function (m) {
+      return map[m];
+    }
+  );
 }
 
 // Helper function for converting Objects to Arrays after sorting the keys
@@ -72,7 +82,7 @@ function showAlert(type, icon, title, message) {
         type: "info",
         icon: "far fa-clock",
         title: title,
-        message: message
+        message: message,
       };
       info = $.notify(opts);
       break;
@@ -81,7 +91,7 @@ function showAlert(type, icon, title, message) {
         type: "success",
         icon: icon,
         title: title,
-        message: message
+        message: message,
       };
       if (info) {
         info.update(opts);
@@ -95,7 +105,7 @@ function showAlert(type, icon, title, message) {
         type: "warning",
         icon: "fas fa-exclamation-triangle",
         title: title,
-        message: message
+        message: message,
       };
       if (info) {
         info.update(opts);
@@ -109,7 +119,7 @@ function showAlert(type, icon, title, message) {
         type: "danger",
         icon: "fas fa-times",
         title: "&nbsp;<strong>Error, something went wrong!</strong><br>",
-        message: message
+        message: message,
       };
       if (info) {
         info.update(opts);
@@ -284,7 +294,7 @@ function addFromQueryLog(domain, list) {
         list: list,
         token: token,
         action: "replace_domain",
-        comment: "Added from Query Log"
+        comment: "Added from Query Log",
       },
       success: function (response) {
         alProcessing.hide();
@@ -314,7 +324,7 @@ function addFromQueryLog(domain, list) {
         setTimeout(function () {
           alertModal.modal("hide");
         }, 8000);
-      }
+      },
     });
   });
 
@@ -346,6 +356,6 @@ window.utils = (function () {
     getGraphType: getGraphType,
     validateMAC: validateMAC,
     validateHostname: validateHostname,
-    addFromQueryLog: addFromQueryLog
+    addFromQueryLog: addFromQueryLog,
   };
 })();

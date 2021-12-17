@@ -18,6 +18,51 @@ $(function () {
     $('input[name="AddIP"]').val(ip);
     $('input[name="AddMAC"]').val(mac);
   });
+
+  // prepare Teleporter Modal & iframe for operation
+  $("#teleporterModal").on("show.bs.modal", function () {
+    $('iframe[name="teleporter_iframe"]').removeAttr("style").contents().find("body").html("");
+    $(this).find("button").prop("disabled", true);
+    $(this).find(".overlay").show();
+  });
+
+  // set Teleporter iframe's font, enable Modal's button(s), ...
+  $('iframe[name="teleporter_iframe"]').on("load", function () {
+    var font = {
+      "font-family": $("pre").css("font-family"),
+      "font-size": $("pre").css("font-size"),
+      color: $("pre").css("color"),
+    };
+    var contents = $(this).contents();
+    contents.find("body").css(font);
+    $("#teleporterModal").find(".overlay").hide();
+    var BtnEls = $(this).parents(".modal-content").find("button").prop("disabled", false);
+
+    // force user to reload the page if necessary
+    var reloadEl = contents.find("span[data-forcereload]");
+    if (reloadEl.length > 0) {
+      var msg = "The page must now be reloaded to display the imported entries";
+      reloadEl.append(msg);
+      BtnEls.toggleClass("hidden")
+        .not(".hidden")
+        .on("click", function () {
+          // window.location.href avoids a browser warning for resending form data
+          window.location = window.location.href;
+        });
+    }
+
+    // expand iframe's height
+    var contentHeight = contents.find("html").height();
+    if (contentHeight > $(this).height()) {
+      $(this).height(contentHeight);
+    }
+  });
+
+  // display selected import file on button's adjacent textfield
+  $("#zip_file").change(function () {
+    var fileName = $(this)[0].files.length === 1 ? $(this)[0].files[0].name : "";
+    $("#zip_filename").val(fileName);
+  });
 });
 $(".confirm-poweroff").confirm({
   text: "Are you sure you want to send a poweroff command to your Pi-hole?",
@@ -33,7 +78,7 @@ $(".confirm-poweroff").confirm({
   post: true,
   confirmButtonClass: "btn-danger",
   cancelButtonClass: "btn-success",
-  dialogClass: "modal-dialog"
+  dialogClass: "modal-dialog",
 });
 $(".confirm-reboot").confirm({
   text: "Are you sure you want to send a reboot command to your Pi-hole?",
@@ -49,7 +94,7 @@ $(".confirm-reboot").confirm({
   post: true,
   confirmButtonClass: "btn-danger",
   cancelButtonClass: "btn-success",
-  dialogClass: "modal-dialog"
+  dialogClass: "modal-dialog",
 });
 
 $(".confirm-restartdns").confirm({
@@ -66,7 +111,7 @@ $(".confirm-restartdns").confirm({
   post: true,
   confirmButtonClass: "btn-danger",
   cancelButtonClass: "btn-success",
-  dialogClass: "modal-dialog"
+  dialogClass: "modal-dialog",
 });
 
 $(".confirm-flushlogs").confirm({
@@ -83,7 +128,7 @@ $(".confirm-flushlogs").confirm({
   post: true,
   confirmButtonClass: "btn-danger",
   cancelButtonClass: "btn-success",
-  dialogClass: "modal-dialog"
+  dialogClass: "modal-dialog",
 });
 
 $(".confirm-flusharp").confirm({
@@ -100,7 +145,7 @@ $(".confirm-flusharp").confirm({
   post: true,
   confirmButtonClass: "btn-warning",
   cancelButtonClass: "btn-success",
-  dialogClass: "modal-dialog"
+  dialogClass: "modal-dialog",
 });
 
 $(".confirm-disablelogging-noflush").confirm({
@@ -117,12 +162,11 @@ $(".confirm-disablelogging-noflush").confirm({
   post: true,
   confirmButtonClass: "btn-warning",
   cancelButtonClass: "btn-success",
-  dialogClass: "modal-dialog"
+  dialogClass: "modal-dialog",
 });
 
 $(".api-token").confirm({
-  text:
-    "Make sure that nobody else can scan this code around you. They will have full access to the API without having to know the password. Note that the generation of the QR code will take some time.",
+  text: "Make sure that nobody else can scan this code around you. They will have full access to the API without having to know the password. Note that the generation of the QR code will take some time.",
   title: "Confirmation required",
   confirm: function () {
     window.open("scripts/pi-hole/php/api_token.php");
@@ -135,7 +179,7 @@ $(".api-token").confirm({
   post: true,
   confirmButtonClass: "btn-danger",
   cancelButtonClass: "btn-success",
-  dialogClass: "modal-dialog"
+  dialogClass: "modal-dialog",
 });
 
 $("#DHCPchk").click(function () {
@@ -184,7 +228,7 @@ $(function () {
       },
       stateLoadCallback: function () {
         return utils.stateLoadCallback("activeDhcpLeaseTable");
-      }
+      },
     });
   }
 
@@ -203,7 +247,7 @@ $(function () {
       },
       stateLoadCallback: function () {
         return utils.stateLoadCallback("staticDhcpLeaseTable");
-      }
+      },
     });
   }
 
@@ -259,10 +303,6 @@ $(function () {
 $(".nav-tabs a").on("shown.bs.tab", function (e) {
   var tab = e.target.hash.substring(1);
   window.history.pushState("", "", "?tab=" + tab);
-  if (tab === "piholedhcp") {
-    window.location.reload();
-  }
-
   window.scrollTo(0, 0);
 });
 
@@ -285,6 +325,24 @@ $(function () {
   });
 });
 
+$(function () {
+  var colorfulQueryLog = $("#colorfulQueryLog");
+  var chkboxData = localStorage.getItem("colorfulQueryLog_chkbox");
+
+  if (chkboxData !== null) {
+    // Restore checkbox state
+    colorfulQueryLog.prop("checked", chkboxData === "true");
+  } else {
+    // Initialize checkbox
+    colorfulQueryLog.prop("checked", false);
+    localStorage.setItem("colorfulQueryLog_chkbox", false);
+  }
+
+  colorfulQueryLog.click(function () {
+    localStorage.setItem("colorfulQueryLog_chkbox", colorfulQueryLog.prop("checked"));
+  });
+});
+
 // Delete dynamic DHCP lease
 $('button[id="removedynamic"]').on("click", function () {
   var tr = $(this).closest("tr");
@@ -300,7 +358,7 @@ $('button[id="removedynamic"]').on("click", function () {
     dataType: "json",
     data: {
       delete_lease: ipaddr,
-      token: token
+      token: token,
     },
     success: function (response) {
       utils.enableAll();
@@ -326,6 +384,6 @@ $('button[id="removedynamic"]').on("click", function () {
       utils.enableAll();
       utils.showAlert("error", "Error while deleting DHCP lease for " + ipname, jqXHR.responseText);
       console.log(exception); // eslint-disable-line no-console
-    }
+    },
   });
 });

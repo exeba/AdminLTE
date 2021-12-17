@@ -14,7 +14,7 @@
     $hostname = gethostname() ? gethostname() : "";
 
     check_cors();
-    
+
     // Create cache busting version
     $cacheVer = filemtime(__FILE__);
 
@@ -220,7 +220,13 @@
     <link rel="shortcut icon" href="img/favicons/favicon.ico">
     <meta name="msapplication-TileColor" content="#367fa9">
     <meta name="msapplication-TileImage" content="img/favicons/mstile-150x150.png">
+<?php if ($theme == "default-light") { ?>
     <meta name="theme-color" content="#367fa9">
+<?php } elseif ($theme == "default-dark") { ?>
+    <meta name="theme-color" content="#272c30">
+<?php } elseif ($theme == "default-darker") { ?>
+    <meta name="theme-color" content="#2e6786">
+<?php } ?>
 
 <?php if ($darkmode) { ?>
     <style>
@@ -643,10 +649,10 @@ if($auth) {
                 <!-- Local DNS Records -->
                 <li class="treeview <?php if(in_array($scriptname, array("dns_records.php", "cname_records.php"))){ ?>active<?php } ?>">
                   <a href="#">
-                    <i class="fa fa-fw fa-address-book"></i> <span>Local DNS</span>                    
+                    <i class="fa fa-fw fa-address-book"></i> <span>Local DNS</span>
                     <span class="pull-right-container">
                       <i class="fa fa-angle-left pull-right"></i>
-                    </span>               
+                    </span>
                   </a>
                   <ul class="treeview-menu">
                     <li<?php if($scriptname === "dns_records.php"){ ?> class="active"<?php } ?>>

@@ -6,7 +6,7 @@
  *  Please see LICENSE file for your rights under this license. */
 
 /* global utils:false */
-
+var table;
 var token = $("#token").text();
 
 function renderTimestamp(data, type) {
@@ -58,6 +58,7 @@ function renderMessage(data, type, row) {
       );
 
     case "HOSTNAME":
+      // eslint-disable-next-line unicorn/no-new-array
       var hint = new Array(row.blob2 + row.message.length + 3).join(" ");
       return (
         "Hostname contains invalid character <code>" +
@@ -76,18 +77,29 @@ function renderMessage(data, type, row) {
     case "DNSMASQ_CONFIG":
       return "FTL failed to start due to " + row.message;
 
+    case "RATE_LIMIT":
+      return (
+        "Client " +
+        row.message +
+        " has been rate-limited (current config allows up to " +
+        parseInt(row.blob1, 10) +
+        " queries in " +
+        parseInt(row.blob2, 10) +
+        " seconds)"
+      );
+
     default:
       return "Unknown message type<pre>" + JSON.stringify(row) + "</pre>";
   }
 }
 
 $(function () {
-  $("#messagesTable").DataTable({
+  table = $("#messagesTable").DataTable({
     ajax: {
       url: "api_db.php?messages",
       data: { token: token },
       type: "POST",
-      dataSrc: "messages"
+      dataSrc: "messages",
     },
     order: [[0, "asc"]],
     columns: [
@@ -99,18 +111,34 @@ $(function () {
       { data: "blob2", visible: false },
       { data: "blob3", visible: false },
       { data: "blob4", visible: false },
-      { data: "blob5", visible: false }
+      { data: "blob5", visible: false },
+      { data: null, width: "80px", orderable: false },
     ],
+    drawCallback: function () {
+      $('button[id^="deleteMessage_"]').on("click", deleteMessage);
+      // Remove visible dropdown to prevent orphaning
+      $("body > .bootstrap-select.dropdown").remove();
+    },
+    rowCallback: function (row, data) {
+      $(row).attr("data-id", data.id);
+      var button =
+        '<button type="button" class="btn btn-danger btn-xs" id="deleteMessage_' +
+        data.id +
+        '">' +
+        '<span class="far fa-trash-alt"></span>' +
+        "</button>";
+      $("td:eq(3)", row).html(button);
+    },
     dom:
       "<'row'<'col-sm-4'l><'col-sm-8'f>>" +
       "<'row'<'col-sm-12'<'table-responsive'tr>>>" +
       "<'row'<'col-sm-5'i><'col-sm-7'p>>",
     lengthMenu: [
       [10, 25, 50, 100, -1],
-      [10, 25, 50, 100, "All"]
+      [10, 25, 50, 100, "All"],
     ],
     language: {
-      emptyTable: "No issues found."
+      emptyTable: "No issues found.",
     },
     stateSave: true,
     stateSaveCallback: function (settings, data) {
@@ -133,6 +161,44 @@ $(function () {
 
       // Apply loaded state to table
       return data;
-    }
+    },
   });
 });
+
+function deleteMessage() {
+  var tr = $(this).closest("tr");
+  var id = tr.attr("data-id");
+
+  utils.disableAll();
+  utils.showAlert("info", "", "Deleting message with ID " + parseInt(id, 10), "...");
+  $.ajax({
+    url: "scripts/pi-hole/php/message.php",
+    method: "post",
+    dataType: "json",
+    data: { action: "delete_message", id: id, token: token },
+    success: function (response) {
+      utils.enableAll();
+      if (response.success) {
+        utils.showAlert("success", "far fa-trash-alt", "Successfully deleted message # ", id);
+        table.row(tr).remove().draw(false).ajax.reload(null, false);
+      } else {
+        utils.showAlert(
+          "error",
+          "",
+          "Error while deleting message with ID " + id,
+          response.message
+        );
+      }
+    },
+    error: function (jqXHR, exception) {
+      utils.enableAll();
+      utils.showAlert(
+        "error",
+        "",
+        "Error while deleting message with ID " + id,
+        jqXHR.responseText
+      );
+      console.log(exception); // eslint-disable-line no-console
+    },
+  });
+}

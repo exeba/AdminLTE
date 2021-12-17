@@ -48,6 +48,11 @@ function check_cors() {
     if (! empty($virtual_host))
         array_push($AUTHORIZED_HOSTNAMES, $virtual_host);
 
+    # Allow user set CORS
+    $cors_hosts = getenv('CORS_HOSTS');
+    if (! empty($cors_hosts))
+        array_push($AUTHORIZED_HOSTNAMES, ...explode(",", $cors_hosts));
+
     // Since the Host header is easily manipulated, we can only check if it's wrong and can't use it
     // to validate that the client is authorized, only unauthorized.
     $server_host = $_SERVER['HTTP_HOST'];
@@ -100,7 +105,7 @@ function check_csrf($token) {
         // Start a new PHP session (or continue an existing one)
         // Prevents javascript XSS attacks aimed to steal the session ID
         ini_set('session.cookie_httponly', 1);
-        // Prevent Session ID from being passed through  URLs
+        // Prevent Session ID from being passed through URLs
         ini_set('session.use_only_cookies', 1);
         session_start();
     }
@@ -121,35 +126,11 @@ function check_csrf($token) {
 function check_domain(&$domains) {
     foreach($domains as &$domain)
     {
-        $validDomain = is_valid_domain_name($domain);
+        $validDomain = validDomain($domain);
         if(!$validDomain){
             log_and_die(htmlspecialchars($domain. ' is not a valid domain'));
         }
     }
 }
 
-function list_verify($type) {
-    global $pwhash, $wrongpassword, $auth;
-    if(!isset($_POST['domain']) || !isset($_POST['list']) || !(isset($_POST['pw']) || isset($_POST['token']))) {
-        log_and_die("Missing POST variables");
-    }
-
-    if(isset($_POST['token']))
-    {
-        check_cors();
-        check_csrf($_POST['token']);
-    }
-    elseif(isset($_POST['pw']))
-    {
-        require("password.php");
-        if($wrongpassword || !$auth)
-        {
-            log_and_die("Wrong password - ".htmlspecialchars($type)."listing of ".htmlspecialchars($_POST['domain'])." not permitted");
-        }
-    }
-    else
-    {
-        log_and_die("Not allowed!");
-    }
-}
 ?>
