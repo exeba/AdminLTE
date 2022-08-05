@@ -46,13 +46,25 @@ if(isset($_GET["all"]))
 }
 else if(isset($_GET["client"]))
 {
-	$showing .= " queries for client ".htmlentities($_GET["client"]);
+	// Add switch between showing all queries and blocked only
+	if (isset($_GET["type"]) && $_GET["type"] === "blocked")
+	{
+		// Show blocked queries for this client + link to all
+		$showing .= " blocked queries for client ".htmlentities($_GET["client"]);
+		$showing .= ", <a href=\"?client=".htmlentities($_GET["client"])."\">show all</a>";
+	}
+	else
+	{
+		// Show All queries for this client + link to show only blocked
+		$showing .= " all queries for client ".htmlentities($_GET["client"]);
+		$showing .= ", <a href=\"?client=".htmlentities($_GET["client"])."&type=blocked\">show blocked only</a>";
+	}
 }
 else if(isset($_GET["forwarddest"]))
 {
-	if($_GET["forwarddest"] === "blocklist")
-		$showing .= " queries answered from blocklists";
-	elseif($_GET["forwarddest"] === "cache")
+	if($_GET["forwarddest"] === "blocked")
+		$showing .= " queries blocked by Pi-hole";
+	elseif($_GET["forwarddest"] === "cached")
 		$showing .= " queries answered from cache";
 	else
 		$showing .= " queries for upstream destination ".htmlentities($_GET["forwarddest"]);
@@ -73,15 +85,6 @@ else
 {
 	$showing .= " up to 100 queries";
 	$showall = true;
-}
-
-if(isset($setupVars["API_PRIVACY_MODE"]))
-{
-	if($setupVars["API_PRIVACY_MODE"])
-	{
-		// Overwrite string from above
-		$showing .= ", privacy mode enabled";
-	}
 }
 
 if(strlen($showing) > 0)
@@ -158,6 +161,7 @@ if(strlen($showing) > 0)
                     </tr>
                 </tfoot>
             </table>
+            <p>Note: Queries for <code>pi.hole</code> and the hostname are never logged.</p>
             <p><strong>Filtering options:</strong></p>
             <ul>
                 <li>Click a value in a column to add/remove that value to/from the filter</li>
@@ -172,7 +176,6 @@ if(strlen($showing) > 0)
 </div>
 <!-- /.row -->
 <script src="scripts/pi-hole/js/ip-address-sorting.js?v=<?=$cacheVer?>"></script>
-<script src="scripts/pi-hole/js/utils.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/queries.js?v=<?=$cacheVer?>"></script>
 
 <?php

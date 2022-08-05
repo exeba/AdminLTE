@@ -20,19 +20,20 @@
     "prettier:fix": "prettier --write \"style/*.css\" \"style/themes/*.css\" \"scripts/pi-hole/**/*.js\"",
     "xo": "xo",
     "xo:fix": "npm run xo -- --fix",
-    "test": "npm run prettier:check && npm run xo"
+    "test": "npm run prettier:check && npm run xo",
+    "testpr": "npm run prettier:fix && git diff --ws-error-highlight=all --color=always --exit-code && npm run xo"
   },
   "devDependencies": {
-    "autoprefixer": "^10.2.5",
-    "eslint-plugin-compat": "^3.9.0",
-    "postcss": "^8.2.15",
-    "postcss-cli": "^8.3.1",
-    "prettier": "2.3.1",
-    "xo": "^0.38.2"
+    "autoprefixer": "^10.4.7",
+    "eslint-plugin-compat": "^4.0.2",
+    "postcss": "^8.4.14",
+    "postcss-cli": "^10.0.0",
+    "prettier": "2.7.1",
+    "xo": "^0.50.0"
   },
   "browserslist": [
     "defaults",
-    "Explorer >= 11"
+    "not IE 11"
   ],
   "prettier": {
     "arrowParens": "avoid",
@@ -51,10 +52,9 @@
       "plugin:compat/recommended"
     ],
     "parserOptions": {
-      "ecmaVersion": 5,
+      "ecmaVersion": "latest",
       "sourceType": "script"
     },
-    "esnext": false,
     "prettier": true,
     "space": 2,
     "ignores": [
@@ -76,8 +76,12 @@
       ],
       "no-alert": "off",
       "no-console": "error",
+      "no-else-return": "off",
       "no-negated-condition": "off",
+      "no-var": "off",
+      "object-shorthand": "off",
       "one-var": "off",
+      "prefer-arrow-callback": "off",
       "spaced-comment": "off",
       "unicorn/explicit-length-check": [
         "error",
@@ -87,8 +91,9 @@
       ],
       "unicorn/filename-case": "off",
       "unicorn/no-array-for-each": "off",
-      "unicorn/no-fn-reference-in-iterator": "off",
       "unicorn/no-for-loop": "off",
+      "unicorn/no-document-cookie": "off",
+      "unicorn/numeric-separators-style": "off",
       "unicorn/prefer-includes": "off",
       "unicorn/prefer-node-append": "off",
       "unicorn/prefer-number-properties": "off",

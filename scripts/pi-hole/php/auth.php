@@ -9,7 +9,7 @@
 require_once('func.php');
 $ERRORLOG = getenv('PHP_ERROR_LOG');
 if (empty($ERRORLOG)) {
-    $ERRORLOG = '/var/log/lighttpd/error.log';
+    $ERRORLOG = '/var/log/lighttpd/error-pihole.log';
 
     if (!file_exists($ERRORLOG) || !is_writable($ERRORLOG)) {
 	    $ERRORLOG = '/var/log/apache2/error.log';
@@ -30,14 +30,11 @@ function log_and_die($message) {
 }
 
 function check_cors() {
-    $setupVars = parse_ini_file("/etc/pihole/setupVars.conf");
-    $ipv4 = isset($setupVars["IPV4_ADDRESS"]) ? explode("/", $setupVars["IPV4_ADDRESS"])[0] : $_SERVER['SERVER_ADDR'];
-    $ipv6 = isset($setupVars["IPV6_ADDRESS"]) ? explode("/", $setupVars["IPV6_ADDRESS"])[0] : $_SERVER['SERVER_ADDR'];
+    $ip = $_SERVER['SERVER_ADDR'];
 
     // Check CORS
     $AUTHORIZED_HOSTNAMES = array(
-        $ipv4,
-        $ipv6,
+        $ip,
         str_replace(array("[","]"), array("",""), $_SERVER["SERVER_NAME"]),
         "pi.hole",
         "localhost"
@@ -47,12 +44,12 @@ function check_cors() {
     $virtual_host = getenv('VIRTUAL_HOST');
     if (! empty($virtual_host))
         array_push($AUTHORIZED_HOSTNAMES, $virtual_host);
-    
+
     # Allow user set CORS
     $cors_hosts = getenv('CORS_HOSTS');
     if (! empty($cors_hosts))
         array_push($AUTHORIZED_HOSTNAMES, ...explode(",", $cors_hosts));
-    
+
     // Since the Host header is easily manipulated, we can only check if it's wrong and can't use it
     // to validate that the client is authorized, only unauthorized.
     $server_host = $_SERVER['HTTP_HOST'];
@@ -73,7 +70,7 @@ function check_cors() {
     $server_host = str_replace(array("[","]"), array("",""), $server_host);
 
     if(isset($_SERVER['HTTP_HOST']) && !in_array($server_host, $AUTHORIZED_HOSTNAMES)) {
-        log_and_die("Failed Host Check: " . $server_host .' vs '. join(', ', $AUTHORIZED_HOSTNAMES));
+        log_and_die("Failed Host Check: " . $server_host .' vs '. htmlspecialchars(join(', ', $AUTHORIZED_HOSTNAMES)));
     }
 
     if(isset($_SERVER['HTTP_ORIGIN'])) {
@@ -88,7 +85,7 @@ function check_cors() {
         $server_origin = str_replace(array("[","]","http://","https://"), array("","","",""), $server_origin);
 
         if(!in_array($server_origin, $AUTHORIZED_HOSTNAMES)) {
-            log_and_die("Failed CORS: " . htmlspecialchars($server_origin) .' vs '. join(', ', $AUTHORIZED_HOSTNAMES));
+            log_and_die("Failed CORS: " . htmlspecialchars($server_origin) .' vs '. htmlspecialchars(join(', ', $AUTHORIZED_HOSTNAMES)));
         }
         header("Access-Control-Allow-Origin: ${_SERVER['HTTP_ORIGIN']}");
     }
@@ -105,7 +102,7 @@ function check_csrf($token) {
         // Start a new PHP session (or continue an existing one)
         // Prevents javascript XSS attacks aimed to steal the session ID
         ini_set('session.cookie_httponly', 1);
-        // Prevent Session ID from being passed through  URLs
+        // Prevent Session ID from being passed through URLs
         ini_set('session.use_only_cookies', 1);
         session_start();
     }
@@ -133,28 +130,4 @@ function check_domain(&$domains) {
     }
 }
 
-function list_verify($type) {
-    global $pwhash, $wrongpassword, $auth;
-    if(!isset($_POST['domain']) || !isset($_POST['list']) || !(isset($_POST['pw']) || isset($_POST['token']))) {
-        log_and_die("Missing POST variables");
-    }
-
-    if(isset($_POST['token']))
-    {
-        check_cors();
-        check_csrf($_POST['token']);
-    }
-    elseif(isset($_POST['pw']))
-    {
-        require("password.php");
-        if($wrongpassword || !$auth)
-        {
-            log_and_die("Wrong password - ".htmlspecialchars($type)."listing of ".htmlspecialchars($_POST['domain'])." not permitted");
-        }
-    }
-    else
-    {
-        log_and_die("Not allowed!");
-    }
-}
 ?>

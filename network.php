@@ -8,12 +8,6 @@
     require "scripts/pi-hole/php/header.php";
 ?>
 
-<!-- Sourceing CSS colors from stylesheet to be used in JS code -->
-<span class="queries-permitted"></span>
-<span class="queries-blocked"></span>
-<span class="graphs-grid"></span>
-<span class="graphs-ticks"></span>
-
 <div class="row">
     <div class="col-md-12">
       <div class="box" id="network-details">
@@ -25,6 +19,7 @@
             <table id="network-entries" class="table table-striped table-bordered" width="100%">
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th>IP address</th>
                         <th>Hardware address</th>
                         <th>Interface</th>
@@ -33,10 +28,12 @@
                         <th>Last Query</th>
                         <th>Number of queries</th>
                         <th>Uses Pi-hole</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tfoot>
                     <tr>
+                        <th>ID</th>
                         <th>IP address</th>
                         <th>Hardware address</th>
                         <th>Interface</th>
@@ -45,6 +42,7 @@
                         <th>Last Query</th>
                         <th>Number of queries</th>
                         <th>Uses Pi-hole</th>
+                        <th>Action</th>
                     </tr>
                 </tfoot>
             </table>
@@ -66,7 +64,6 @@
 </div>
 <!-- /.row -->
 
-<script src="scripts/pi-hole/js/utils.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/ip-address-sorting.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/network.js?v=<?=$cacheVer?>"></script>
 

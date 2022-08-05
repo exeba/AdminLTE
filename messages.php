@@ -23,6 +23,7 @@
                     <thead>
                     <tr>
                         <th>ID</th>
+                        <th>&nbsp;</th>
                         <th>Time</th>
                         <th>Type</th>
                         <th>Message</th>
@@ -31,9 +32,11 @@
                         <th>Data3</th>
                         <th>Data4</th>
                         <th>Data5</th>
+                        <th>&nbsp;</th>
                     </tr>
                     </thead>
                 </table>
+                <p>Note: If errors are shown, you can <a href="debug.php">generate a debug log</a>, which will do a thorough Pi-hole evaluation.</p>
             </div>
             <!-- /.box-body -->
         </div>
@@ -41,7 +44,6 @@
     </div>
 </div>
 
-<script src="scripts/pi-hole/js/utils.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/messages.js?v=<?=$cacheVer?>"></script>
 
 <?php

@@ -18,37 +18,6 @@ check_cors();
 ini_set("max_execution_time","600");
 
 $data = array();
-$clients = array();
-function resolveHostname($clientip, $printIP)
-{
-	global $clients;
-	$ipaddr = strtolower($clientip);
-	if(array_key_exists($clientip, $clients))
-	{
-		// Entry already exists
-		$clientname = $clients[$ipaddr];
-		if($printIP)
-			return $clientname."|".$clientip;
-		return $clientname;
-	}
-
-	else if(validIP($clientip))
-	{
-		// Get host name of client and convert to lower case
-		$clientname = strtolower(gethostbyaddr($ipaddr));
-	}
-	else
-	{
-		// This is already a host name
-		$clientname = $ipaddr;
-	}
-	// Buffer result
-	$clients[$ipaddr] = $clientname;
-
-	if($printIP)
-		return $clientname."|".$clientip;
-	return $clientname;
-}
 
 // Needs package php5-sqlite, e.g.
 //    sudo apt-get install php5-sqlite
@@ -95,7 +64,20 @@ if (isset($_GET['getAllQueries']) && $auth)
 	{
 		$from = intval($_GET["from"]);
 		$until = intval($_GET["until"]);
-		$dbquery = "SELECT timestamp, type, domain, client, status, forward FROM queries WHERE timestamp >= :from AND timestamp <= :until ";
+
+		// Use table "query_storage"
+		//   - replace domain ID with domain
+		//   - replace client ID with client name
+		//   - replace forward ID with forward destination
+		$dbquery = "SELECT timestamp, type,";
+		$dbquery .= " CASE typeof(domain) WHEN 'integer' THEN (SELECT domain FROM domain_by_id d WHERE d.id = q.domain) ELSE domain END domain,";
+		$dbquery .= " CASE typeof(client) WHEN 'integer' THEN (";
+		$dbquery .= "   SELECT CASE TRIM(name) WHEN '' THEN c.ip ELSE c.name END name FROM client_by_id c WHERE c.id = q.client";
+		$dbquery .= " ) ELSE client END client,";
+		$dbquery .= " CASE typeof(forward) WHEN 'integer' THEN (SELECT forward FROM forward_by_id f WHERE f.id = q.forward) ELSE forward END forward,";
+		$dbquery .= " status, reply_type, reply_time, dnssec";
+		$dbquery .= " FROM query_storage q";
+		$dbquery .= " WHERE timestamp >= :from AND timestamp <= :until ";
 		if(isset($_GET["types"]))
 		{
 			$types = $_GET["types"];
@@ -118,20 +100,44 @@ if (isset($_GET['getAllQueries']) && $auth)
 		$stmt->bindValue(":from", intval($from), SQLITE3_INTEGER);
 		$stmt->bindValue(":until", intval($until), SQLITE3_INTEGER);
 		$results = $stmt->execute();
-		if(!is_bool($results))
-			while ($row = $results->fetchArray())
-			{
-				// Try to resolve host name of this client
-				$c = resolveHostname($row[3],false);
 
-				// Convert query type ID to name
-				$query_type = getQueryTypeStr($row[1]);
+		// Start the JSON string
+		echo '{"data":[';
 
-				// Insert into array
-				// array:        time     type         domain                                     client           status   upstream destination
-				$allQueries[] = [$row[0], $query_type, utf8_encode(str_replace("~"," ",$row[2])), utf8_encode($c), $row[4], utf8_encode($row[5])];
+		if (!is_bool($results)) {
+			$first = true;
+			while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
+				// Insert a comma before the next record (except on the first one)
+				if (!$first) {
+					echo ",";
+				} else {
+					$first = false;
+				}
+
+				// Format, encode, transform each field (if necessary).
+				$time = $row["timestamp"];
+				$query_type = getQueryTypeStr($row["type"]); // Convert query type ID to name
+				$domain = utf8_encode(str_replace("~"," ",$row["domain"]));
+				$client = $row["client"];
+				$status = $row["status"];
+				$destination = utf8_encode($row["forward"]);
+				$reply_type = $row["reply_type"];
+				$reply_time = $row["reply_time"];
+				$dnssec = $row["dnssec"];
+				$client_id = $row["client_id"];
+
+				// Insert into array and output it in JSON format
+				echo json_encode([$time, $query_type, $domain, $client, $status, $destination, $reply_type, $reply_time, $dnssec]);
 			}
+		}
+
+		// Finish the JSON string
+		echo ']}';
+
+		// exit at the end
+		exit();
 	}
+	// only used if getAllQueries==empty
 	$result = array('data' => $allQueries);
 	$data = array_merge($data, $result);
 }
@@ -152,7 +158,11 @@ if (isset($_GET['topClients']) && $auth)
 	{
 		$limit = "WHERE timestamp <= :until";
 	}
-	$stmt = $db->prepare('SELECT client,count(client) FROM queries '.$limit.' GROUP by client order by count(client) desc limit 20');
+    $dbquery = "SELECT CASE typeof(client) WHEN 'integer' THEN (";
+    $dbquery .= " SELECT CASE TRIM(name) WHEN '' THEN c.ip ELSE c.name END name FROM client_by_id c WHERE c.id = q.client)";
+    $dbquery .= " ELSE client END client, count(client) FROM query_storage q ".$limit." GROUP BY client ORDER BY count(client) DESC LIMIT 20";
+
+	$stmt = $db->prepare($dbquery);
 	$stmt->bindValue(":from", intval($_GET['from']), SQLITE3_INTEGER);
 	$stmt->bindValue(":until", intval($_GET['until']), SQLITE3_INTEGER);
 	$results = $stmt->execute();
@@ -162,18 +172,17 @@ if (isset($_GET['topClients']) && $auth)
 	if(!is_bool($results))
 		while ($row = $results->fetchArray())
 		{
-			// Try to resolve host name and convert to UTF-8
-			$c = utf8_encode(resolveHostname($row[0],false));
+			// $row[0] is the client IP
 
-			if(array_key_exists($c, $clientnums))
+			if(array_key_exists($row[0], $clientnums))
 			{
 				// Entry already exists, add to it (might appear multiple times due to mixed capitalization in the database)
-				$clientnums[$c] += intval($row[1]);
+				$clientnums[$row[0]] += intval($row[1]);
 			}
 			else
 			{
 				// Entry does not yet exist
-				$clientnums[$c] = intval($row[1]);
+				$clientnums[$row[0]] = intval($row[1]);
 			}
 		}
 
@@ -335,7 +344,7 @@ if (isset($_GET['getGraphData']) && $auth)
 	if(isset($_GET["interval"]))
 	{
 		$q = intval($_GET["interval"]);
-		if($q > 10)
+		if($q >= 10)
 			$interval = $q;
 	}
 
@@ -398,9 +407,12 @@ if (isset($_GET['getGraphData']) && $auth)
 	$data = array_merge($data, $result);
 }
 
-if (isset($_GET['status']))
+if (isset($_GET['status']) && $auth)
 {
-	$results = $db->query('SELECT COUNT(*) FROM message;');
+	$extra = ";";
+	if(isset($_GET["ignore"]) && $_GET["ignore"] === 'DNSMASQ_WARN')
+		$extra = "WHERE type != 'DNSMASQ_WARN';";
+	$results = $db->query('SELECT COUNT(*) FROM message '.$extra);
 
 	if(!is_bool($results))
 		$result = array('message_count' => $results->fetchArray()[0]);
@@ -412,8 +424,12 @@ if (isset($_GET['status']))
 
 if(isset($_GET["messages"]) && $auth)
 {
+	$extra = ";";
+	if(isset($_GET["ignore"]) && $_GET["ignore"] === 'DNSMASQ_WARN')
+		$extra = "WHERE type != 'DNSMASQ_WARN';";
+
 	$messages = array();
-	$results = $db->query('SELECT * FROM message');
+	$results = $db->query('SELECT * FROM message '.$extra);
 
 	while($results !== false && $res = $results->fetchArray(SQLITE3_ASSOC))
 	{

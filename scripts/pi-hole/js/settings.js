@@ -5,7 +5,7 @@
  *  This file is copyright under the latest version of the EUPL.
  *  Please see LICENSE file for your rights under this license. */
 
-/* global utils:false */
+/* global utils:false, checkMessages:false */
 var token = $("#token").text();
 
 $(function () {
@@ -17,6 +17,51 @@ $(function () {
     $('input[name="AddHostname"]').val(host);
     $('input[name="AddIP"]').val(ip);
     $('input[name="AddMAC"]').val(mac);
+  });
+
+  // prepare Teleporter Modal & iframe for operation
+  $("#teleporterModal").on("show.bs.modal", function () {
+    $('iframe[name="teleporter_iframe"]').removeAttr("style").contents().find("body").html("");
+    $(this).find("button").prop("disabled", true);
+    $(this).find(".overlay").show();
+  });
+
+  // set Teleporter iframe's font, enable Modal's button(s), ...
+  $('iframe[name="teleporter_iframe"]').on("load", function () {
+    var font = {
+      "font-family": $("pre").css("font-family"),
+      "font-size": $("pre").css("font-size"),
+      color: $("pre").css("color"),
+    };
+    var contents = $(this).contents();
+    contents.find("body").css(font);
+    $("#teleporterModal").find(".overlay").hide();
+    var BtnEls = $(this).parents(".modal-content").find("button").prop("disabled", false);
+
+    // force user to reload the page if necessary
+    var reloadEl = contents.find("span[data-forcereload]");
+    if (reloadEl.length > 0) {
+      var msg = "The page must now be reloaded to display the imported entries";
+      reloadEl.append(msg);
+      BtnEls.toggleClass("hidden")
+        .not(".hidden")
+        .on("click", function () {
+          // window.location.href avoids a browser warning for resending form data
+          window.location = window.location.href;
+        });
+    }
+
+    // expand iframe's height
+    var contentHeight = contents.find("html").height();
+    if (contentHeight > $(this).height()) {
+      $(this).height(contentHeight);
+    }
+  });
+
+  // display selected import file on button's adjacent textfield
+  $("#zip_file").change(function () {
+    var fileName = $(this)[0].files.length === 1 ? $(this)[0].files[0].name : "";
+    $("#zip_filename").val(fileName);
   });
 });
 $(".confirm-poweroff").confirm({
@@ -124,7 +169,7 @@ $(".api-token").confirm({
   text: "Make sure that nobody else can scan this code around you. They will have full access to the API without having to know the password. Note that the generation of the QR code will take some time.",
   title: "Confirmation required",
   confirm: function () {
-    window.open("scripts/pi-hole/php/api_token.php");
+    $("#apiTokenModal").modal("show");
   },
   cancel: function () {
     // nothing to do
@@ -135,6 +180,18 @@ $(".api-token").confirm({
   confirmButtonClass: "btn-danger",
   cancelButtonClass: "btn-success",
   dialogClass: "modal-dialog",
+});
+
+$("#apiTokenModal").on("show.bs.modal", function () {
+  var bodyStyle = {
+    "font-family": $("body").css("font-family"),
+    "background-color": "white",
+  };
+  $('iframe[name="apiToken_iframe"]').contents().find("body").css(bodyStyle);
+  var qrCodeStyle = {
+    margin: "auto",
+  };
+  $('iframe[name="apiToken_iframe"]').contents().find("table").css(qrCodeStyle);
 });
 
 $("#DHCPchk").click(function () {
@@ -156,9 +213,15 @@ function loadCacheInfo() {
     var cachelivefreed = parseInt(data.cacheinfo["cache-live-freed"], 10);
     $("#cache-live-freed").text(cachelivefreed);
     if (cachelivefreed > 0) {
-      $("#cache-live-freed").parent("tr").addClass("lookatme");
+      $("#cache-live-freed").parent("tr").children("th").children("span").addClass("lookatme");
+      $("#cache-live-freed").parent("tr").children("td").addClass("lookatme");
+      $("#cache-live-freed")
+        .parent("tr")
+        .children("td")
+        .attr("lookatme-text", cachelivefreed.toString());
     } else {
-      $("#cache-live-freed").parent("tr").removeClass("lookatme");
+      $("#cache-live-freed").parent("tr").children("th").children("span").removeClass("lookatme");
+      $("#cache-live-freed").parent("tr").children("td").removeClass("lookatme");
     }
 
     // Update cache info every 10 seconds
@@ -170,14 +233,40 @@ var leasetable, staticleasetable;
 $(function () {
   if (document.getElementById("DHCPLeasesTable")) {
     leasetable = $("#DHCPLeasesTable").DataTable({
-      dom: "<'row'<'col-sm-12'tr>><'row'<'col-sm-6'i><'col-sm-6'f>>",
-      columnDefs: [{ bSortable: false, orderable: false, targets: -1 }],
-      paging: false,
-      scrollCollapse: true,
-      scrollY: "200px",
-      scrollX: true,
+      dom:
+        "<'row'<'col-sm-12'f>>" +
+        "<'row'<'col-sm-4'l><'col-sm-8'p>>" +
+        "<'row'<'col-sm-12'<'table-responsive'tr>>>" +
+        "<'row'<'col-sm-5'i><'col-sm-7'p>>",
+      lengthMenu: [
+        [5, 10, 25, 50, 100, -1],
+        [5, 10, 25, 50, 100, "All"],
+      ],
+      columnDefs: [
+        { bSortable: false, orderable: false, targets: -1 },
+        {
+          targets: [0, 1],
+          render: $.fn.dataTable.render.text(),
+        },
+        {
+          targets: 2,
+          render: function (data) {
+            // Show "unknown", when host is "*"
+            var str;
+            if (data === "*") {
+              str = "<i>unknown</i>";
+            } else {
+              str = typeof data === "string" ? utils.escapeHtml(data) : data;
+            }
+
+            return str;
+          },
+        },
+      ],
+      paging: true,
       order: [[2, "asc"]],
       stateSave: true,
+      stateDuration: 0,
       stateSaveCallback: function (settings, data) {
         utils.stateSaveCallback("activeDhcpLeaseTable", data);
       },
@@ -189,12 +278,23 @@ $(function () {
 
   if (document.getElementById("DHCPStaticLeasesTable")) {
     staticleasetable = $("#DHCPStaticLeasesTable").DataTable({
-      dom: "<'row'<'col-sm-12'tr>><'row'<'col-sm-12'i>>",
-      columnDefs: [{ bSortable: false, orderable: false, targets: -1 }],
-      paging: false,
-      scrollCollapse: true,
-      scrollY: "200px",
-      scrollX: true,
+      dom:
+        "<'row'<'col-sm-12'f>>" +
+        "<'row'<'col-sm-4'l><'col-sm-8'p>>" +
+        "<'row'<'col-sm-12'<'table-responsive'tr>>>" +
+        "<'row'<'col-sm-5'i><'col-sm-7'p>>",
+      lengthMenu: [
+        [5, 10, 25, 50, 100, -1],
+        [5, 10, 25, 50, 100, "All"],
+      ],
+      columnDefs: [
+        { bSortable: false, orderable: false, targets: -1 },
+        {
+          targets: [0, 1, 2],
+          render: $.fn.dataTable.render.text(),
+        },
+      ],
+      paging: true,
       order: [[2, "asc"]],
       stateSave: true,
       stateSaveCallback: function (settings, data) {
@@ -258,17 +358,13 @@ $(function () {
 $(".nav-tabs a").on("shown.bs.tab", function (e) {
   var tab = e.target.hash.substring(1);
   window.history.pushState("", "", "?tab=" + tab);
-  if (tab === "piholedhcp") {
-    window.location.reload();
-  }
-
   window.scrollTo(0, 0);
 });
 
 // Bar/Smooth chart toggle
 $(function () {
   var bargraphs = $("#bargraphs");
-  var chkboxData = localStorage.getItem("barchart_chkbox");
+  var chkboxData = localStorage ? localStorage.getItem("barchart_chkbox") : null;
 
   if (chkboxData !== null) {
     // Restore checkbox state
@@ -276,11 +372,33 @@ $(function () {
   } else {
     // Initialize checkbox
     bargraphs.prop("checked", true);
-    localStorage.setItem("barchart_chkbox", true);
+    if (localStorage) {
+      localStorage.setItem("barchart_chkbox", true);
+    }
   }
 
   bargraphs.click(function () {
     localStorage.setItem("barchart_chkbox", bargraphs.prop("checked"));
+  });
+});
+
+$(function () {
+  var colorfulQueryLog = $("#colorfulQueryLog");
+  var chkboxData = localStorage ? localStorage.getItem("colorfulQueryLog_chkbox") : null;
+
+  if (chkboxData !== null) {
+    // Restore checkbox state
+    colorfulQueryLog.prop("checked", chkboxData === "true");
+  } else {
+    // Initialize checkbox
+    colorfulQueryLog.prop("checked", false);
+    if (localStorage) {
+      localStorage.setItem("colorfulQueryLog_chkbox", false);
+    }
+  }
+
+  colorfulQueryLog.click(function () {
+    localStorage.setItem("colorfulQueryLog_chkbox", colorfulQueryLog.prop("checked"));
   });
 });
 
@@ -326,5 +444,28 @@ $('button[id="removedynamic"]').on("click", function () {
       utils.showAlert("error", "Error while deleting DHCP lease for " + ipname, jqXHR.responseText);
       console.log(exception); // eslint-disable-line no-console
     },
+  });
+});
+
+// Non-fatal dnsmasq warnings toggle
+$(function () {
+  var nonfatalwarnigns = $("#hideNonfatalDnsmasqWarnings");
+  var chkboxData = localStorage ? localStorage.getItem("hideNonfatalDnsmasqWarnings_chkbox") : null;
+
+  if (chkboxData !== null) {
+    // Restore checkbox state
+    nonfatalwarnigns.prop("checked", chkboxData === "true");
+  } else {
+    // Initialize checkbox
+    nonfatalwarnigns.prop("checked", false);
+    if (localStorage) {
+      localStorage.setItem("hideNonfatalDnsmasqWarnings_chkbox", false);
+    }
+  }
+
+  nonfatalwarnigns.click(function () {
+    localStorage.setItem("hideNonfatalDnsmasqWarnings_chkbox", nonfatalwarnigns.prop("checked"));
+    // Call check messages to make new setting effective
+    checkMessages();
   });
 });

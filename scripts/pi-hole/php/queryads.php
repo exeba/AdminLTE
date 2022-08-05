@@ -17,7 +17,7 @@ header('Cache-Control: no-cache');
 
 function echoEvent($datatext) {
     if(!isset($_GET["IE"]))
-      echo "data: ".implode("\ndata: ", explode("\n", $datatext))."\n\n";
+      echo "data:".implode("\ndata:", explode("\n", $datatext))."\n\n";
     else
       echo $datatext;
 }
@@ -26,10 +26,9 @@ function echoEvent($datatext) {
 if(isset($_GET["domain"]))
 {
     // Is this a valid domain?
-    $url = $_GET["domain"];
-    if(!validDomain($url))
-    {
-        echoEvent("Invalid domain!");
+    $url = idn_to_ascii($_GET["domain"]);
+    if (!validDomain($url)) {
+        echoEvent(htmlentities($url)." is an invalid domain!");
         die();
     }
 }

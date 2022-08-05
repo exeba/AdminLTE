@@ -92,7 +92,7 @@ function format(data) {
         utils.datetime(data.date_updated) +
         ")"
       : "N/A") +
-    '</td></tr><tr class="dataTables-child"><td>Number of valid domains on this list:&nbsp;&nbsp;</td><td>' +
+    '</td></tr><tr class="dataTables-child"><td>Number of domains on this list:&nbsp;&nbsp;</td><td>' +
     (data.number !== null && numbers === true ? parseInt(data.number, 10) : "N/A") +
     '</td></tr><tr class="dataTables-child"' +
     invalidStyle +
@@ -117,14 +117,32 @@ function initTable() {
     order: [[0, "asc"]],
     columns: [
       { data: "id", visible: false },
+      { data: null, visible: true, orderable: false, width: "15px" },
       { data: "status", searchable: false, class: "details-control" },
       { data: "address" },
       { data: "enabled", searchable: false },
       { data: "comment" },
       { data: "groups", searchable: false },
-      { data: null, width: "80px", orderable: false },
+      { data: null, width: "22px", orderable: false },
+    ],
+    columnDefs: [
+      {
+        targets: 1,
+        className: "select-checkbox",
+        render: function () {
+          return "";
+        },
+      },
+      {
+        targets: "_all",
+        render: $.fn.dataTable.render.text(),
+      },
     ],
     drawCallback: function () {
+      // Hide buttons if all adlists were deleted
+      var hasRows = this.api().rows({ filter: "applied" }).data().length > 0;
+      $(".datatable-bt").css("visibility", hasRows ? "visible" : "hidden");
+
       $('button[id^="deleteAdlist_"]').on("click", deleteAdlist);
       // Remove visible dropdown to prevent orphaning
       $("body > .bootstrap-select.dropdown").remove();
@@ -154,7 +172,6 @@ function initTable() {
         case 4:
           statusIcon = "fa-times";
           break;
-        case 0:
         default:
           statusIcon = "fa-question-circle";
           break;
@@ -166,19 +183,19 @@ function initTable() {
         extra = "<i class='fa fa-exclamation-triangle list-status-3'></i>";
       }
 
-      $("td:eq(0)", row).addClass("list-status-" + statusCode);
-      $("td:eq(0)", row).html(
+      $("td:eq(1)", row).addClass("list-status-" + statusCode);
+      $("td:eq(1)", row).html(
         "<i class='fa " + statusIcon + "' title='Click for details about this list'></i>" + extra
       );
 
       if (data.address.startsWith("file://")) {
         // Local files cannot be downloaded from a distant client so don't show
         // a link to such a list here
-        $("td:eq(1)", row).html(
+        $("td:eq(2)", row).html(
           '<code id="address_' + data.id + '" class="breakall">' + data.address + "</code>"
         );
       } else {
-        $("td:eq(1)", row).html(
+        $("td:eq(2)", row).html(
           '<a id="address_' +
             data.id +
             '" class="breakall" href="' +
@@ -189,7 +206,7 @@ function initTable() {
         );
       }
 
-      $("td:eq(2)", row).html(
+      $("td:eq(3)", row).html(
         '<input type="checkbox" id="status_' + data.id + '"' + (disabled ? "" : " checked") + ">"
       );
       var statusEl = $("#status_" + data.id, row);
@@ -202,13 +219,13 @@ function initTable() {
       });
       statusEl.on("change", editAdlist);
 
-      $("td:eq(3)", row).html('<input id="comment_' + data.id + '" class="form-control">');
+      $("td:eq(4)", row).html('<input id="comment_' + data.id + '" class="form-control">');
       var commentEl = $("#comment_" + data.id, row);
       commentEl.val(utils.unescapeHtml(data.comment));
       commentEl.on("change", editAdlist);
 
-      $("td:eq(4)", row).empty();
-      $("td:eq(4)", row).append(
+      $("td:eq(5)", row).empty();
+      $("td:eq(5)", row).append(
         '<select class="selectpicker" id="multiselect_' + data.id + '" multiple></select>'
       );
       var selectEl = $("#multiselect_" + data.id, row);
@@ -275,20 +292,69 @@ function initTable() {
       var button =
         '<button type="button" class="btn btn-danger btn-xs" id="deleteAdlist_' +
         data.id +
+        '" data-del-id="' +
+        data.id +
         '">' +
         '<span class="far fa-trash-alt"></span>' +
         "</button>";
-      $("td:eq(5)", row).html(button);
+      $("td:eq(6)", row).html(button);
     },
     dom:
-      "<'row'<'col-sm-4'l><'col-sm-8'f>>" +
+      "<'row'<'col-sm-6'l><'col-sm-6'f>>" +
+      "<'row'<'col-sm-3'B><'col-sm-9'p>>" +
       "<'row'<'col-sm-12'<'table-responsive'tr>>>" +
-      "<'row'<'col-sm-5'i><'col-sm-7'p>>",
+      "<'row'<'col-sm-3'B><'col-sm-9'p>>" +
+      "<'row'<'col-sm-12'i>>",
     lengthMenu: [
       [10, 25, 50, 100, -1],
       [10, 25, 50, 100, "All"],
     ],
+    select: {
+      style: "multi",
+      selector: "td:not(:last-child)",
+      info: false,
+    },
+    buttons: [
+      {
+        text: '<span class="far fa-square"></span>',
+        titleAttr: "Select All",
+        className: "btn-sm datatable-bt selectAll",
+        action: function () {
+          table.rows({ page: "current" }).select();
+        },
+      },
+      {
+        text: '<span class="far fa-plus-square"></span>',
+        titleAttr: "Select All",
+        className: "btn-sm datatable-bt selectMore",
+        action: function () {
+          table.rows({ page: "current" }).select();
+        },
+      },
+      {
+        extend: "selectNone",
+        text: '<span class="far fa-check-square"></span>',
+        titleAttr: "Deselect All",
+        className: "btn-sm datatable-bt removeAll",
+      },
+      {
+        text: '<span class="far fa-trash-alt"></span>',
+        titleAttr: "Delete Selected",
+        className: "btn-sm datatable-bt deleteSelected",
+        action: function () {
+          // For each ".selected" row ...
+          var ids = [];
+          $("tr.selected").each(function () {
+            // ... add the row identified by "data-id".
+            ids.push(parseInt($(this).attr("data-id"), 10));
+          });
+          // Delete all selected rows at once
+          delItems(ids);
+        },
+      },
+    ],
     stateSave: true,
+    stateDuration: 0,
     stateSaveCallback: function (settings, data) {
       utils.stateSaveCallback("groups-adlists-table", data);
     },
@@ -307,6 +373,10 @@ function initTable() {
     },
   });
 
+  table.on("init select deselect", function () {
+    utils.changeBulkDeleteStates(table);
+  });
+
   table.on("order.dt", function () {
     var order = table.order();
     if (order[0][0] !== 0 || order[0][1] !== "asc") {
@@ -315,6 +385,7 @@ function initTable() {
       $("#resetButton").addClass("hidden");
     }
   });
+
   $("#resetButton").on("click", function () {
     table.order([[0, "asc"]]).draw();
     $("#resetButton").addClass("hidden");
@@ -346,6 +417,66 @@ function initTable() {
   }
 }
 
+// Remove 'bnt-group' class from container, to avoid grouping
+$.fn.dataTable.Buttons.defaults.dom.container.className = "dt-buttons";
+
+function deleteAdlist() {
+  // Passes the button data-del-id attribute as ID
+  var ids = [parseInt($(this).attr("data-del-id"), 10)];
+  delItems(ids);
+}
+
+function delItems(ids) {
+  // Check input validity
+  if (!Array.isArray(ids)) return;
+
+  var address = "";
+
+  // Exploit prevention: Return early for non-numeric IDs
+  for (var id of ids) {
+    if (typeof id !== "number") return;
+    address += "<li>" + utils.escapeHtml($("#address_" + id).text()) + "</li>";
+  }
+
+  utils.disableAll();
+  var idstring = ids.join(", ");
+  utils.showAlert("info", "", "Deleting Adlists: " + idstring, "...");
+
+  $.ajax({
+    url: "scripts/pi-hole/php/groups.php",
+    method: "post",
+    dataType: "json",
+    data: { action: "delete_adlist", id: JSON.stringify(ids), token: token },
+  })
+    .done(function (response) {
+      utils.enableAll();
+      if (response.success) {
+        utils.showAlert(
+          "success",
+          "far fa-trash-alt",
+          "Successfully deleted adlists: " + idstring,
+          "<ul>" + address + "</ul>"
+        );
+        for (var id in ids) {
+          if (Object.hasOwnProperty.call(ids, id)) {
+            table.row(id).remove().draw(false).ajax.reload(null, false);
+          }
+        }
+      } else {
+        utils.showAlert("error", "", "Error while deleting adlists: " + idstring, response.message);
+      }
+
+      // Clear selection after deletion
+      table.rows().deselect();
+      utils.changeBulkDeleteStates(table);
+    })
+    .fail(function (jqXHR, exception) {
+      utils.enableAll();
+      utils.showAlert("error", "", "Error while deleting adlists: " + idstring, jqXHR.responseText);
+      console.log(exception); // eslint-disable-line no-console
+    });
+}
+
 function addAdlist() {
   var address = utils.escapeHtml($("#new_address").val());
   var comment = utils.escapeHtml($("#new_comment").val());
@@ -373,11 +504,19 @@ function addAdlist() {
     success: function (response) {
       utils.enableAll();
       if (response.success) {
-        utils.showAlert("success", "fas fa-plus", "Successfully added adlist", address);
+        if (response.warning) {
+          // Ignored items found! Showing ignored and added items in a warning.
+          utils.showAlert("warning", "fas fa-plus", "Warning", response.message);
+        } else {
+          // All items added.
+          utils.showAlert("success", "fas fa-plus", "Successfully added adlist", response.message);
+        }
+
         table.ajax.reload(null, false);
         $("#new_address").val("");
         $("#new_comment").val("");
         table.ajax.reload();
+        table.rows().deselect();
       } else {
         utils.showAlert("error", "", "Error while adding new adlist: ", response.message);
       }
@@ -467,35 +606,6 @@ function editAdlist() {
         "Error while " + notDone + " adlist with ID " + id,
         jqXHR.responseText
       );
-      console.log(exception); // eslint-disable-line no-console
-    },
-  });
-}
-
-function deleteAdlist() {
-  var tr = $(this).closest("tr");
-  var id = tr.attr("data-id");
-  var address = utils.escapeHtml(tr.find("#address_" + id).text());
-
-  utils.disableAll();
-  utils.showAlert("info", "", "Deleting adlist...", address);
-  $.ajax({
-    url: "scripts/pi-hole/php/groups.php",
-    method: "post",
-    dataType: "json",
-    data: { action: "delete_adlist", id: id, token: token },
-    success: function (response) {
-      utils.enableAll();
-      if (response.success) {
-        utils.showAlert("success", "far fa-trash-alt", "Successfully deleted adlist ", address);
-        table.row(tr).remove().draw(false).ajax.reload(null, false);
-      } else {
-        utils.showAlert("error", "", "Error while deleting adlist with ID " + id, response.message);
-      }
-    },
-    error: function (jqXHR, exception) {
-      utils.enableAll();
-      utils.showAlert("error", "", "Error while deleting adlist with ID " + id, jqXHR.responseText);
       console.log(exception); // eslint-disable-line no-console
     },
   });

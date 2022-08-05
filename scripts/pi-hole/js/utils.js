@@ -31,13 +31,23 @@ function unescapeHtml(text) {
     "&gt;": ">",
     "&quot;": '"',
     "&#039;": "'",
+    "&Uuml;": "Ü",
+    "&uuml;": "ü",
+    "&Auml;": "Ä",
+    "&auml;": "ä",
+    "&Ouml;": "Ö",
+    "&ouml;": "ö",
+    "&szlig;": "ß",
   };
 
   if (text === null) return null;
 
-  return text.replace(/&(?:amp|lt|gt|quot|#039);/g, function (m) {
-    return map[m];
-  });
+  return text.replace(
+    /&(?:amp|lt|gt|quot|#039|Uuml|uuml|Auml|auml|Ouml|ouml|szlig);/g,
+    function (m) {
+      return map[m];
+    }
+  );
 }
 
 // Helper function for converting Objects to Arrays after sorting the keys
@@ -219,13 +229,25 @@ function setBsSelectDefaults() {
   };
 }
 
+var backupStorage = {};
 function stateSaveCallback(itemName, data) {
-  localStorage.setItem(itemName, JSON.stringify(data));
+  if (localStorage === null) {
+    backupStorage[itemName] = JSON.stringify(data);
+  } else {
+    localStorage.setItem(itemName, JSON.stringify(data));
+  }
 }
 
 function stateLoadCallback(itemName) {
+  var data;
   // Receive previous state from client's local storage area
-  var data = localStorage.getItem(itemName);
+  if (localStorage === null) {
+    var item = backupStorage[itemName];
+    data = typeof item === "undefined" ? null : item;
+  } else {
+    data = localStorage.getItem(itemName);
+  }
+
   // Return if not available
   if (data === null) {
     return null;
@@ -249,7 +271,7 @@ function stateLoadCallback(itemName) {
 
 function getGraphType() {
   // Only return line if `barchart_chkbox` is explicitly set to false. Else return bar
-  return localStorage.getItem("barchart_chkbox") === "false" ? "line" : "bar";
+  return localStorage && localStorage.getItem("barchart_chkbox") === "false" ? "line" : "bar";
 }
 
 function addFromQueryLog(domain, list) {
@@ -327,6 +349,65 @@ function addFromQueryLog(domain, list) {
   });
 }
 
+// Helper functions to format the progress bars used on the Dashboard and Long-term Lists
+function addTD(content) {
+  return "<td>" + content + "</td> ";
+}
+
+function colorBar(percentage, total, cssClass) {
+  var title = percentage.toFixed(1) + "% of " + total;
+  var bar = '<div class="progress-bar ' + cssClass + '" style="width: ' + percentage + '%"></div>';
+  return '<div class="progress progress-sm" title="' + title + '"> ' + bar + " </div>";
+}
+
+function checkMessages() {
+  var ignoreNonfatal = localStorage
+    ? localStorage.getItem("hideNonfatalDnsmasqWarnings_chkbox") === "true"
+    : false;
+  $.getJSON("api_db.php?status" + (ignoreNonfatal ? "&ignore=DNSMASQ_WARN" : ""), function (data) {
+    if ("message_count" in data && data.message_count > 0) {
+      var more = '\nAccess "Tools/Pi-hole diganosis" for further details.';
+      var title =
+        data.message_count > 1
+          ? "There are " + data.message_count + " warnings." + more
+          : "There is one warning." + more;
+
+      $(".warning-count").prop("title", title);
+      $(".warning-count").text(data.message_count);
+      $(".warning-count").removeClass("hidden");
+    } else {
+      $(".warning-count").addClass("hidden");
+    }
+  });
+}
+
+// Show only the appropriate delete buttons in datatables
+function changeBulkDeleteStates(table) {
+  var allRows = table.rows({ filter: "applied" }).data().length;
+  var pageLength = table.page.len();
+  var selectedRows = table.rows(".selected").data().length;
+
+  if (selectedRows === 0) {
+    // Nothing selected
+    $(".selectAll").removeClass("hidden");
+    $(".selectMore").addClass("hidden");
+    $(".removeAll").addClass("hidden");
+    $(".deleteSelected").addClass("hidden");
+  } else if (selectedRows >= pageLength || selectedRows === allRows) {
+    // Whole page is selected (or all available messages were selected)
+    $(".selectAll").addClass("hidden");
+    $(".selectMore").addClass("hidden");
+    $(".removeAll").removeClass("hidden");
+    $(".deleteSelected").removeClass("hidden");
+  } else {
+    // Some rows are selected, but not all
+    $(".selectAll").addClass("hidden");
+    $(".selectMore").removeClass("hidden");
+    $(".removeAll").addClass("hidden");
+    $(".deleteSelected").removeClass("hidden");
+  }
+}
+
 window.utils = (function () {
   return {
     escapeHtml: escapeHtml,
@@ -347,5 +428,9 @@ window.utils = (function () {
     validateMAC: validateMAC,
     validateHostname: validateHostname,
     addFromQueryLog: addFromQueryLog,
+    addTD: addTD,
+    colorBar: colorBar,
+    checkMessages: checkMessages,
+    changeBulkDeleteStates: changeBulkDeleteStates,
   };
 })();

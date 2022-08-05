@@ -84,11 +84,15 @@ function archive_restore_table($file, $table, $flush=false)
 	if(is_null($contents))
 		return 0;
 
-	// Flush table if requested, only flush each table once
+	// Flush table if requested. Only flush each table once, and only if it exists
 	if($flush && !in_array($table, $flushed_tables))
 	{
-		$db->exec("DELETE FROM \"".$table."\"");
-		array_push($flushed_tables, $table);
+		$tableExists = $db->querySingle("SELECT name FROM sqlite_master WHERE type='table' AND name='".$table."';");
+		if ($tableExists)
+		{
+			$db->exec("DELETE FROM \"".$table."\"");
+			array_push($flushed_tables, $table);
+		}
 	}
 
 	// Prepare fields depending on the table we restore to
@@ -157,7 +161,7 @@ function archive_restore_table($file, $table, $flush=false)
 		$field = "domain";
 	}
 
-	// Prepare SQLite statememt
+	// Prepare SQLite statement
 	$stmt = $db->prepare($sql);
 
 	// Return early if we fail to prepare the SQLite statement
@@ -320,6 +324,15 @@ function process_file($contents)
 	return $domains;
 }
 
+function noun($num)
+{
+	if($num === 1)
+	{
+		return " entry";
+	}
+	return " entries";
+}
+
 if(isset($_POST["action"]))
 {
 	if($_FILES["zip_file"]["name"] && $_POST["action"] == "in")
@@ -328,22 +341,20 @@ if(isset($_POST["action"]))
 		$source = $_FILES["zip_file"]["tmp_name"];
 		$type = mime_content_type($source);
 
-		$name = explode(".", $filename);
+		// verify the file mime type
 		$accepted_types = array('application/gzip', 'application/tar', 'application/x-compressed', 'application/x-gzip');
-		$okay = false;
-		foreach($accepted_types as $mime_type) {
-			if($mime_type == $type) {
-				$okay = true;
-				break;
-			}
-		}
+		$mime_valid = in_array($type, $accepted_types);
 
-		$continue = strtolower($name[1]) == 'tar' && strtolower($name[2]) == 'gz' ? true : false;
-		if(!$continue || !$okay) {
+		// verify the file extension (Looking for ".tar.gz" at the end of the file name)
+		$ext = array_slice(explode(".", $filename), -2, 2);
+		$ext_valid = strtolower($ext[0]) == "tar" && strtolower($ext[1]) == "gz" ? true : false;
+
+		if(!$ext_valid || !$mime_valid) {
 			die("The file you are trying to upload is not a .tar.gz file (filename: ".htmlentities($filename).", type: ".htmlentities($type)."). Please try again.");
 		}
 
 		$fullfilename = sys_get_temp_dir()."/".$filename;
+
 		if(!move_uploaded_file($source, $fullfilename))
 		{
 			die("Failed moving ".htmlentities($source)." to ".htmlentities($fullfilename));
@@ -352,6 +363,8 @@ if(isset($_POST["action"]))
 		$archive = new PharData($fullfilename);
 
 		$importedsomething = false;
+		$fullpiholerestart = false;
+		$reloadsettingspage = false;
 
 		$flushtables = isset($_POST["flushtables"]);
 
@@ -360,21 +373,21 @@ if(isset($_POST["action"]))
 			if(isset($_POST["blacklist"]) && $file->getFilename() === "blacklist.txt")
 			{
 				$num = archive_insert_into_table($file, "blacklist", $flushtables);
-				echo "Processed blacklist (exact) (".$num." entries)<br>\n";
+				echo "Processed blacklist (exact) (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["whitelist"]) && $file->getFilename() === "whitelist.txt")
 			{
 				$num = archive_insert_into_table($file, "whitelist", $flushtables);
-				echo "Processed whitelist (exact) (".$num." entries)<br>\n";
+				echo "Processed whitelist (exact) (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["regexlist"]) && $file->getFilename() === "regex.list")
 			{
 				$num = archive_insert_into_table($file, "regex_blacklist", $flushtables);
-				echo "Processed blacklist (regex) (".$num." entries)<br>\n";
+				echo "Processed blacklist (regex) (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
@@ -382,84 +395,84 @@ if(isset($_POST["action"]))
 			if(isset($_POST["regexlist"]) && $file->getFilename() === "wildcardblocking.txt")
 			{
 				$num = archive_insert_into_table($file, "regex_blacklist", $flushtables, true);
-				echo "Processed blacklist (regex, wildcard style) (".$num." entries)<br>\n";
+				echo "Processed blacklist (regex, wildcard style) (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["auditlog"]) && $file->getFilename() === "auditlog.list")
 			{
 				$num = archive_insert_into_table($file, "domain_audit", $flushtables);
-				echo "Processed audit log (".$num." entries)<br>\n";
+				echo "Processed audit log (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["adlist"]) && $file->getFilename() === "adlists.list")
 			{
 				$num = archive_insert_into_table($file, "adlist", $flushtables);
-				echo "Processed adlists (".$num." entries)<br>\n";
+				echo "Processed adlists (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["blacklist"]) && $file->getFilename() === "blacklist.exact.json")
 			{
 				$num = archive_restore_table($file, "blacklist", $flushtables);
-				echo "Processed blacklist (exact) (".$num." entries)<br>\n";
+				echo "Processed blacklist (exact) (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["regexlist"]) && $file->getFilename() === "blacklist.regex.json")
 			{
 				$num = archive_restore_table($file, "regex_blacklist", $flushtables);
-				echo "Processed blacklist (regex) (".$num." entries)<br>\n";
+				echo "Processed blacklist (regex) (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["whitelist"]) && $file->getFilename() === "whitelist.exact.json")
 			{
 				$num = archive_restore_table($file, "whitelist", $flushtables);
-				echo "Processed whitelist (exact) (".$num." entries)<br>\n";
+				echo "Processed whitelist (exact) (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["regex_whitelist"]) && $file->getFilename() === "whitelist.regex.json")
 			{
 				$num = archive_restore_table($file, "regex_whitelist", $flushtables);
-				echo "Processed whitelist (regex) (".$num." entries)<br>\n";
+				echo "Processed whitelist (regex) (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["adlist"]) && $file->getFilename() === "adlist.json")
 			{
 				$num = archive_restore_table($file, "adlist", $flushtables);
-				echo "Processed adlist (".$num." entries)<br>\n";
+				echo "Processed adlist (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["auditlog"]) && $file->getFilename() === "domain_audit.json")
 			{
 				$num = archive_restore_table($file, "domain_audit", $flushtables);
-				echo "Processed domain_audit (".$num." entries)<br>\n";
+				echo "Processed domain_audit (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["group"]) && $file->getFilename() === "group.json")
 			{
 				$num = archive_restore_table($file, "group", $flushtables);
-				echo "Processed group (".$num." entries)<br>\n";
+				echo "Processed group (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["client"]) && $file->getFilename() === "client.json")
 			{
 				$num = archive_restore_table($file, "client", $flushtables);
-				echo "Processed client (".$num." entries)<br>\n";
+				echo "Processed client (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["client"]) && $file->getFilename() === "client_by_group.json")
 			{
 				$num = archive_restore_table($file, "client_by_group", $flushtables);
-				echo "Processed client group assignments (".$num." entries)<br>\n";
+				echo "Processed client group assignments (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
@@ -468,14 +481,14 @@ if(isset($_POST["action"]))
 				$file->getFilename() === "domainlist_by_group.json")
 			{
 				$num = archive_restore_table($file, "domainlist_by_group", $flushtables);
-				echo "Processed black-/whitelist group assignments (".$num." entries)<br>\n";
+				echo "Processed black-/whitelist group assignments (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
 			if(isset($_POST["adlist"]) && $file->getFilename() === "adlist_by_group.json")
 			{
 				$num = archive_restore_table($file, "adlist_by_group", $flushtables);
-				echo "Processed adlist group assignments (".$num." entries)<br>\n";
+				echo "Processed adlist group assignments (".$num.noun($num).")<br>\n";
 				$importedsomething = true;
 			}
 
@@ -498,37 +511,45 @@ if(isset($_POST["action"]))
 				}
 
 				readStaticLeasesFile();
-				echo "Processed static DHCP leases (".$num." entries)<br>\n";
+				echo "Processed static DHCP leases (".$num.noun($num).")<br>\n";
 				if($num > 0) {
 					$importedsomething = true;
+					$reloadsettingspage = true;
 				}
 			}
 
 			if(isset($_POST["localdnsrecords"]) && $file->getFilename() === "custom.list")
 			{
+				ob_start();
+				$reload="false";
 				if($flushtables) {
 					// Defined in func.php included via auth.php
-					deleteAllCustomDNSEntries();
+					// passing reload="false" will not restart Pi-hole
+					deleteAllCustomDNSEntries($reload);
 				}
 				$num = 0;
 				$localdnsrecords = process_file(file_get_contents($file));
 				foreach($localdnsrecords as $record) {
 					list($ip,$domain) = explode(" ",$record);
-					if(addCustomDNSEntry($ip, $domain, false))
+					if(addCustomDNSEntry($ip, $domain, $reload, false))
 						$num++;
 				}
-
-				echo "Processed local DNS records (".$num." entries)<br>\n";
+				ob_end_clean();
+				echo "Processed local DNS records (".$num.noun($num).")<br>\n";
 				if($num > 0) {
-					$importedsomething = true;
+					// we need a full pihole restart
+					$fullpiholerestart = true;
 				}
 			}
 
 			if(isset($_POST["localcnamerecords"]) && $file->getFilename() === "05-pihole-custom-cname.conf")
 			{
+				ob_start();
+				$reload="false";
 				if($flushtables) {
 					// Defined in func.php included via auth.php
-					deleteAllCustomCNAMEEntries();
+					//passing reload="false" will not restart Pi-hole
+					deleteAllCustomCNAMEEntries($reload);
 				}
 
 				$num = 0;
@@ -538,28 +559,40 @@ if(isset($_POST["action"]))
 					$line = str_replace("\r","", $line);
 					$line = str_replace("\n","", $line);
 					$explodedLine = explode (",", $line);
-					
+
 					$domain = implode(",", array_slice($explodedLine, 0, -1));
 					$target = $explodedLine[count($explodedLine)-1];
 
-					if(addCustomCNAMEEntry($domain, $target, false))
+					if(addCustomCNAMEEntry($domain, $target, $reload, false))
 						$num++;
 				}
-
-				echo "Processed local CNAME records (".$num." entries)<br>\n";
+				ob_end_clean();
+				echo "Processed local CNAME records (".$num.noun($num).")<br>\n";
 				if($num > 0) {
-					$importedsomething = true;
+					// we need a full pihole restart
+					$fullpiholerestart = true;
 				}
 			}
 		}
 
-		if($importedsomething)
+		// do we need a full restart of Pi-hole or reloading the lists?
+		if($fullpiholerestart)
 		{
-			pihole_execute("restartdns reload");
+			pihole_execute("restartdns");
+		} else {
+			if($importedsomething)
+			{
+				pihole_execute("restartdns reload");
+			}
 		}
+
 
 		unlink($fullfilename);
 		echo "OK";
+		if($reloadsettingspage)
+		{
+			echo "<br>\n<span data-forcereload></span>";
+		}
 	}
 	else
 	{
@@ -571,7 +604,10 @@ else
 	$hostname = gethostname() ? str_replace(".", "_", gethostname())."-" : "";
 	$tarname = "pi-hole-".$hostname."teleporter_".date("Y-m-d_H-i-s").".tar";
 	$filename = $tarname.".gz";
-	$archive_file_name = sys_get_temp_dir() ."/". $tarname;
+    $archive_file_name = tempnam(sys_get_temp_dir(), 'pihole_teleporter_'); //create a random file name in the system's tmp dir for the intermediat archive
+    unlink($archive_file_name); //remove intermediate file created by tempnam()
+    $archive_file_name .= ".tar"; // Append ".tar" extension
+
 	$archive = new PharData($archive_file_name);
 
 	if ($archive->isWritable() !== TRUE) {
@@ -599,7 +635,7 @@ else
 	archive_add_file("/etc/","hosts","etc/");
 	archive_add_directory("/etc/dnsmasq.d/","dnsmasq.d/");
 
-	$archive->compress(Phar::GZ); // Creates a gziped copy
+	$archive->compress(Phar::GZ); // Creates a gzipped copy
 	unlink($archive_file_name); // Unlink original tar file as it is not needed anymore
 	$archive_file_name .= ".gz"; // Append ".gz" extension to ".tar"
 

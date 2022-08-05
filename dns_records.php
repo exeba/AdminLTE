@@ -1,12 +1,13 @@
-<?php /*
+<?php
+/*
 *    Pi-hole: A black hole for Internet advertisements
 *    (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 *    Network-wide ad blocking via your own hardware.
 *
 *    This file is copyright under the latest version of the EUPL.
 *    Please see LICENSE file for your rights under this license. */
-    require "scripts/pi-hole/php/header.php";
 
+require "scripts/pi-hole/php/header.php";
 ?>
 
 <!-- Title -->
@@ -39,29 +40,21 @@
                 </div>
             </div>
             <div class="box-footer clearfix">
+              <strong>Note:</strong>
+              <p>The order of locally defined DNS records is: </p>
+              <ol>
+                  <li>The device's host name and <code>pi.hole</code></li>
+                  <li>Configured in a config file in <code>/etc/dnsmasq.d/</code></li>
+                  <li>Read from <code>/etc/hosts</code></li>
+                  <li>Read from the "Local (custom) DNS" list (stored in <code>/etc/pihole/custom.list</code>)</li>
+              </ol>
+              <p>Only the first record will trigger an address-to-name association.</p>
                 <button type="button" id="btnAdd" class="btn btn-primary pull-right">Add</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Alerts -->
-<div id="alInfo" class="alert alert-info alert-dismissible fade in" role="alert" hidden>
-    <button type="button" class="close" data-hide="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-    Updating the custom DNS entries...
-</div>
-<div id="alSuccess" class="alert alert-success alert-dismissible fade in" role="alert" hidden>
-    <button type="button" class="close" data-hide="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-    Success! The list will refresh.
-</div>
-<div id="alFailure" class="alert alert-danger alert-dismissible fade in" role="alert" hidden>
-    <button type="button" class="close" data-hide="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-    Failure! Something went wrong, see output below:<br/><br/><pre><span id="err"></span></pre>
-</div>
-<div id="alWarning" class="alert alert-warning alert-dismissible fade in" role="alert" hidden>
-    <button type="button" class="close" data-hide="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-    At least one domain was already present, see output below:<br/><br/><pre><span id="warn"></span></pre>
-</div>
 <div class="row">
     <div class="col-md-12">
         <div class="box" id="recent-queries">
@@ -89,7 +82,6 @@
     </div>
 </div>
 
-<script src="scripts/pi-hole/js/utils.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/ip-address-sorting.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/customdns.js?v=<?=$cacheVer?>"></script>
 

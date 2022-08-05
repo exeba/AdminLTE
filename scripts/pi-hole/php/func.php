@@ -54,19 +54,15 @@ function validCIDRIP($address){
 	if($isIPv6) {
 		// One IPv6 element is 16bit: 0000 - FFFF
 		$v6elem = "[0-9A-Fa-f]{1,4}";
-		// CIDR for IPv6 is any multiple of 4 from 4 up to 128 bit
-		$v6cidr = "(4";
-		for ($i=8; $i <= 128; $i+=4) {
-			$v6cidr .= "|$i";
-		}
-		$v6cidr .= ")";
+		// dnsmasq allows arbitrary prefix-length since https://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=commit;h=35f93081dc9a52e64ac3b7196ad1f5c1106f8932
+		$v6cidr = "([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])";
 		$validator = "/^(((?:$v6elem))((?::$v6elem))*::((?:$v6elem))((?::$v6elem))*|((?:$v6elem))((?::$v6elem)){7})\/$v6cidr$/";
 		return preg_match($validator, $address);
 	} else {
 		// One IPv4 element is 8bit: 0 - 256
 		$v4elem = "(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)";
-		// Note that rev-server accepts only /8, /16, /24, and /32
-		$allowedv4cidr = "(8|16|24|32)";
+		// dnsmasq allows arbitrary prefix-length
+		$allowedv4cidr = "(([1-9]|[12][0-9]|3[0-2]))";
 		$validator = "/^$v4elem\.$v4elem\.$v4elem\.$v4elem\/$allowedv4cidr$/";
 		return preg_match($validator, $address);
 	}
@@ -141,9 +137,8 @@ if(!function_exists('hash_equals')) {
  * and returns output of that command as a string.
  *
  * @param $argument_string String of arguments to run pihole with.
- * @param $error_on_failure If true, a warning is raised if command execution fails. Defaults to true.
  */
-function pihole_execute($argument_string, $error_on_failure = true) {
+function pihole_execute($argument_string) {
     $escaped = escapeshellcmd($argument_string);
     $output = null;
     $return_status = -1;
@@ -199,7 +194,7 @@ function getCustomDNSEntries()
     return $entries;
 }
 
-function addCustomDNSEntry($ip="", $domain="", $json=true)
+function addCustomDNSEntry($ip="", $domain="", $reload="", $json=true)
 {
     try
     {
@@ -208,6 +203,9 @@ function addCustomDNSEntry($ip="", $domain="", $json=true)
 
         if(isset($_REQUEST['domain']))
             $domain = trim($_REQUEST['domain']);
+
+        if(isset($_REQUEST['reload']))
+            $reload = $_REQUEST['reload'];
 
         if (empty($ip))
             return returnError("IP must be set", $json);
@@ -233,7 +231,7 @@ function addCustomDNSEntry($ip="", $domain="", $json=true)
         }
 
         // Add record
-        pihole_execute("-a addcustomdns ".$ip." ".$domain);
+        pihole_execute("-a addcustomdns ".$ip." ".$domain." ".$reload);
 
         return returnSuccess("", $json);
     }
@@ -279,36 +277,23 @@ function deleteCustomDNSEntry()
     }
 }
 
-function deleteAllCustomDNSEntries()
+function deleteAllCustomDNSEntries($reload="")
 {
-    if (isset($customDNSFile))
-    {
-        $handle = fopen($customDNSFile, "r");
-        if ($handle)
-        {
-            try
-            {
-                while (($line = fgets($handle)) !== false) {
-                    $line = str_replace("\r","", $line);
-                    $line = str_replace("\n","", $line);
-                    $explodedLine = explode (" ", $line);
+    try
+		{
+        if(isset($_REQUEST['reload']))
+            $reload = $_REQUEST['reload'];
 
-                    if (count($explodedLine) != 2)
-                        continue;
-
-                    $ip = $explodedLine[0];
-                    $domain = $explodedLine[1];
-
-                    pihole_execute("-a removecustomdns ".$ip." ".$domain);
-                }
-            }
-            catch (\Exception $ex)
-            {
-                return returnError($ex->getMessage());
-            }
-
-            fclose($handle);
+        $existingEntries = getCustomDNSEntries();
+        // passing false to pihole_execute stops pihole from reloading after each entry has been deleted
+        foreach ($existingEntries as $entry) {
+            pihole_execute("-a removecustomdns ".$entry->ip." ".$entry->domain." ".$reload);
         }
+
+    }
+    catch (\Exception $ex)
+    {
+        return returnError($ex->getMessage());
     }
 
     return returnSuccess();
@@ -361,7 +346,7 @@ function getCustomCNAMEEntries()
     return $entries;
 }
 
-function addCustomCNAMEEntry($domain="", $target="", $json=true)
+function addCustomCNAMEEntry($domain="", $target="", $reload="", $json=true)
 {
     try
     {
@@ -370,6 +355,9 @@ function addCustomCNAMEEntry($domain="", $target="", $json=true)
 
         if(isset($_REQUEST['target']))
             $target = trim($_REQUEST['target']);
+
+        if(isset($_REQUEST['reload']))
+            $reload = $_REQUEST['reload'];
 
         if (empty($domain))
             return returnError("Domain must be set", $json);
@@ -395,7 +383,7 @@ function addCustomCNAMEEntry($domain="", $target="", $json=true)
                 if (in_array($d, $entry->domains))
                     return returnError("There is already a CNAME record for '$d'", $json);
 
-        pihole_execute("-a addcustomcname ".$domain." ".$target);
+        pihole_execute("-a addcustomcname ".$domain." ".$target." ".$reload);
 
         return returnSuccess("", $json);
     }
@@ -441,14 +429,17 @@ function deleteCustomCNAMEEntry()
     }
 }
 
-function deleteAllCustomCNAMEEntries()
+function deleteAllCustomCNAMEEntries($reload="")
 {
     try
     {
-        $existingEntries = getCustomCNAMEEntries();
+        if(isset($_REQUEST['reload']))
+            $reload = $_REQUEST['reload'];
 
+        $existingEntries = getCustomCNAMEEntries();
+        // passing false to pihole_execute stops pihole from reloading after each entry has been deleted
         foreach ($existingEntries as $entry) {
-            pihole_execute("-a removecustomcname ".$entry->domain." ".$entry->target);
+            pihole_execute("-a removecustomcname ".$entry->domain." ".$entry->target." ".$reload);
         }
 
     }
@@ -472,6 +463,7 @@ function returnSuccess($message = "", $json = true)
 
 function returnError($message = "", $json = true)
 {
+    $message = htmlentities($message) ;
     if ($json) {
         return [ "success" => false, "message" => $message ];
     } else {
@@ -482,7 +474,7 @@ function returnError($message = "", $json = true)
 
 function getQueryTypeStr($querytype)
 {
-    $qtypes = ["A (IPv4)", "AAAA (IPv6)", "ANY", "SRV", "SOA", "PTR", "TXT", "NAPTR", "MX", "DS", "RRSIG", "DNSKEY", "NS", "OTHER", "SVCB", "HTTPS"];
+    $qtypes = ["A", "AAAA", "ANY", "SRV", "SOA", "PTR", "TXT", "NAPTR", "MX", "DS", "RRSIG", "DNSKEY", "NS", "OTHER", "SVCB", "HTTPS"];
     $qtype = intval($querytype);
     if($qtype > 0 && $qtype <= count($qtypes))
         return $qtypes[$qtype-1];
@@ -490,4 +482,76 @@ function getQueryTypeStr($querytype)
         return "TYPE".($qtype - 100);
 }
 
+// Functions to return Alert messages (success, error, warning) in JSON format.
+// Used in multiple pages.
+
+// Return Success message in JSON format
+function JSON_success($message = null) {
+    header('Content-type: application/json');
+    echo json_encode(array('success' => true, 'message' => $message));
+}
+
+// Return Error message in JSON format
+function JSON_error($message = null) {
+    header('Content-type: application/json');
+    $response = array('success' => false, 'message' => $message);
+    if (isset($_POST['action'])) {
+        array_push($response, array('action' => $_POST['action']));
+    }
+    echo json_encode($response);
+}
+
+// Return Warning message in JSON format.
+// - sends "success", because it wasn't a failure.
+// - sends "warning" to use the correct alert type.
+function JSON_warning($message = null) {
+    header('Content-type: application/json');
+    echo json_encode(array(
+        'success' => true,
+        'warning' => true,
+        'message' => $message,
+    ));
+}
+
+// Returns an integer representing pihole blocking status
+function piholeStatus() {
+    // Retrieve DNS Port calling FTL API directly
+    $port = callFTLAPI("dns-port");
+
+    // Retrieve FTL status
+    $FTLstats = callFTLAPI("stats");
+
+    if (array_key_exists("FTLnotrunning", $port) || array_key_exists("FTLnotrunning", $FTLstats)){
+        // FTL is not running
+        $ret = -1;
+    } elseif (in_array("status enabled", $FTLstats)) {
+        // FTL is enabled
+        if (intval($port[0]) <= 0) {
+            // Port=0; FTL is not listening
+            $ret = -1;
+        } else {
+            // FTL is running on this port
+            $ret = intval($port[0]);
+        }
+    } elseif (in_array("status disabled", $FTLstats)) {
+        // FTL is disabled
+        $ret = 0;
+    } else {
+        // Unknown (unexpected) response
+        $ret = -2;
+    }
+
+    return $ret;
+}
+
+//Returns the default gateway address and interface
+function getGateway() {
+    $gateway= callFTLAPI("gateway");
+    if (array_key_exists("FTLnotrunning", $gateway)) {
+      $ret = array("ip" => -1);
+    } else {
+      $ret = array_combine(["ip", "iface"], explode(" ", $gateway[0]));
+    }
+    return $ret;
+}
 ?>

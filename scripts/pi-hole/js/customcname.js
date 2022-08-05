@@ -10,35 +10,6 @@
 var table;
 var token = $("#token").text();
 
-function showAlert(type, message) {
-  var alertElement = null;
-  var messageElement = null;
-
-  switch (type) {
-    case "info":
-      alertElement = $("#alInfo");
-      break;
-    case "success":
-      alertElement = $("#alSuccess");
-      break;
-    case "warning":
-      alertElement = $("#alWarning");
-      messageElement = $("#warn");
-      break;
-    case "error":
-      alertElement = $("#alFailure");
-      messageElement = $("#err");
-      break;
-    default:
-      return;
-  }
-
-  if (messageElement !== null) messageElement.html(message);
-
-  alertElement.fadeIn(200);
-  alertElement.delay(8000).fadeOut(2000);
-}
-
 $(function () {
   $("#btnAdd").on("click", addCustomCNAME);
 
@@ -64,6 +35,10 @@ $(function () {
           );
         },
       },
+      {
+        targets: "_all",
+        render: $.fn.dataTable.render.text(),
+      },
     ],
     lengthMenu: [
       [10, 25, 50, 100, -1],
@@ -71,6 +46,7 @@ $(function () {
     ],
     order: [[0, "asc"]],
     stateSave: true,
+    stateDuration: 0,
     stateSaveCallback: function (settings, data) {
       utils.stateSaveCallback("LocalCNAMETable", data);
     },
@@ -81,6 +57,7 @@ $(function () {
       $(".deleteCustomCNAME").on("click", deleteCustomCNAME);
     },
   });
+
   // Disable autocorrect in the search box
   var input = document.querySelector("input[type=search]");
   input.setAttribute("autocomplete", "off");
@@ -93,20 +70,35 @@ function addCustomCNAME() {
   var domain = utils.escapeHtml($("#domain").val());
   var target = utils.escapeHtml($("#target").val());
 
-  showAlert("info");
+  utils.disableAll();
+  utils.showAlert("info", "", "Adding custom CNAME record...", "");
+
   $.ajax({
     url: "scripts/pi-hole/php/customcname.php",
     method: "post",
     dataType: "json",
     data: { action: "add", domain: domain, target: target, token: token },
     success: function (response) {
+      utils.enableAll();
       if (response.success) {
-        showAlert("success");
+        utils.showAlert(
+          "success",
+          "far fa-check-circle",
+          "Custom CNAME added",
+          domain + ": " + target
+        );
+
+        // Clean up field values and reload table data
+        $("#domain").val("");
+        $("#target").val("");
         table.ajax.reload();
-      } else showAlert("error", response.message);
+      } else {
+        utils.showAlert("error", "fas fa-times", "Failure! Something went wrong", response.message);
+      }
     },
     error: function () {
-      showAlert("error", "Error while adding this custom CNAME record");
+      utils.enableAll();
+      utils.showAlert("error", "fas fa-times", "Error while adding custom CNAME record", "");
     },
   });
 }
@@ -115,20 +107,31 @@ function deleteCustomCNAME() {
   var domain = $(this).attr("data-domain");
   var target = $(this).attr("data-target");
 
-  showAlert("info");
+  utils.disableAll();
+  utils.showAlert("info", "", "Deleting custom CNAME record...", "");
+
   $.ajax({
     url: "scripts/pi-hole/php/customcname.php",
     method: "post",
     dataType: "json",
     data: { action: "delete", domain: domain, target: target, token: token },
     success: function (response) {
+      utils.enableAll();
       if (response.success) {
-        showAlert("success");
+        utils.showAlert(
+          "success",
+          "far fa-check-circle",
+          "Custom CNAME deleted",
+          domain + ": " + target
+        );
         table.ajax.reload();
-      } else showAlert("error", response.message);
+      } else {
+        utils.showAlert("error", "fas fa-times", "Failure! Something went wrong", response.message);
+      }
     },
     error: function (jqXHR, exception) {
-      showAlert("error", "Error while deleting this custom CNAME record");
+      utils.enableAll();
+      utils.showAlert("error", "fas fa-times", "Error while deleting custom CNAME record", "");
       console.log(exception); // eslint-disable-line no-console
     },
   });

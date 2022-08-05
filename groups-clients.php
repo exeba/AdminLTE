@@ -44,7 +44,7 @@
                            IP subnets (CIDR notation, like <code>192.168.2.0/24</code>),
                            their MAC addresses (like <code>12:34:56:78:9A:BC</code>),
                            by their hostnames (like <code>localhost</code>), or by the interface they are connected to (prefaced with a colon, like <code>:eth0</code>).</p>
-                        <p>Note that client recognition by IP addresses (incl. subnet ranges) are prefered over MAC address, host name or interface recognition as
+                        <p>Note that client recognition by IP addresses (incl. subnet ranges) are preferred over MAC address, host name or interface recognition as
                            the two latter will only be available after some time.
                            Furthermore, MAC address recognition only works for devices at most one networking hop away from your Pi-hole.</p>
                     </div>
@@ -70,10 +70,11 @@
                     <thead>
                     <tr>
                         <th>ID</th>
+                        <th></th>
                         <th title="Acceptable values are: IP address, subnet (CIDR notation), MAC address (AA:BB:CC:DD:EE:FF format) or host names.">Client</th>
                         <th>Comment</th>
                         <th>Group assignment</th>
-                        <th>Action</th>
+                        <th>&nbsp;</th>
                     </tr>
                     </thead>
                 </table>
@@ -88,7 +89,6 @@
 <script src="scripts/vendor/bootstrap-select.min.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/vendor/bootstrap-toggle.min.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/ip-address-sorting.js?v=<?=$cacheVer?>"></script>
-<script src="scripts/pi-hole/js/utils.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/groups-clients.js?v=<?=$cacheVer?>"></script>
 
 <?php
