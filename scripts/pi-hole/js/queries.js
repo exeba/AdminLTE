@@ -125,12 +125,10 @@ $(function () {
         case "2":
           fieldtext =
             replyid === 0
-              ? "<span class='text-green'>OK</span>, sent to "
-              : "<span class='text-green'>OK</span>, answered by ";
+              ? "<span class='text-green'>OK</span> (sent to <br class='hidden-lg'>"
+              : "<span class='text-green'>OK</span> (answered by <br class='hidden-lg'>";
           fieldtext +=
-            "<br class='hidden-lg'>" +
-            (data.length > 10 && data[10] !== "N/A" ? data[10] : "") +
-            dnssecStatus;
+            (data.length > 10 && data[10] !== "N/A" ? data[10] : "") + ")" + dnssecStatus;
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-red"><i class="fa fa-ban"></i> Blacklist</button>';
           break;
@@ -174,7 +172,8 @@ $(function () {
           buttontext = "";
           break;
         case "9":
-          fieldtext = "<span class='text-red'>Blocked (gravity, CNAME)</span>";
+          fieldtext =
+            "<span class='text-red'>Blocked <br class='hidden-lg'>(gravity, CNAME)</span>";
           blocked = true;
           buttontext =
             '<button type="button" class="btn btn-default btn-sm text-green"><i class="fas fa-check"></i> Whitelist</button>';
@@ -183,7 +182,7 @@ $(function () {
         case "10":
           fieldtext =
             "<span class='text-red'>Blocked <br class='hidden-lg'>(regex blacklist, CNAME)</span>";
-
+          blocked = true;
           if (data.length > 9 && data[9] > 0) {
             regexLink = true;
           }
@@ -218,6 +217,11 @@ $(function () {
             "<span class='text-orange'>Blocked <br class='hidden-lg'>(database is busy)</span>";
           blocked = true;
           break;
+        case "16":
+          fieldtext =
+            "<span class='text-orange'>Blocked <br class='hidden-lg'>(special domain)</span>";
+          blocked = true;
+          break;
         default:
           fieldtext = "Unknown (" + parseInt(data[4], 10) + ")";
       }
@@ -231,7 +235,7 @@ $(function () {
       fieldtext += '<input type="hidden" name="id" value="' + parseInt(data[4], 10) + '">';
 
       $(row).addClass(blocked === true ? "blocked-row" : "allowed-row");
-      if (localStorage.getItem("colorfulQueryLog_chkbox") === "true") {
+      if (localStorage && localStorage.getItem("colorfulQueryLog_chkbox") === "true") {
         $(row).addClass(blocked === true ? "text-red" : "text-green");
       }
 
@@ -295,15 +299,27 @@ $(function () {
       url: APIstring,
       error: handleAjaxError,
       dataSrc: function (data) {
-        var dataIndex = 0;
-        return data.data.map(function (x) {
-          x[0] = x[0] * 1e6 + dataIndex++;
-          var dnssec = x[5];
-          var reply = x[6];
-          x[5] = reply;
-          x[6] = dnssec;
-          return x;
-        });
+        if ("FTLnotrunning" in data) {
+          // if FTL is not running, return empyt array (empty table)
+          utils.showAlert(
+            "error",
+            "",
+            "Error while deleting DHCP lease for ",
+            "FTL is not running"
+          );
+          data = {};
+          return data;
+        } else {
+          var dataIndex = 0;
+          return data.data.map(function (x) {
+            x[0] = x[0] * 1e6 + dataIndex++;
+            var dnssec = x[5];
+            var reply = x[6];
+            x[5] = reply;
+            x[6] = dnssec;
+            return x;
+          });
+        }
       },
     },
     autoWidth: false,
@@ -323,8 +339,8 @@ $(function () {
         },
       },
       { width: "4%" },
-      { width: "36%", render: $.fn.dataTable.render.text() },
-      { width: "8%", type: "ip-address", render: $.fn.dataTable.render.text() },
+      { width: "36%" },
+      { width: "8%", type: "ip-address" },
       { width: "14%", orderData: 4 },
       { width: "8%", orderData: 5 },
       { width: "10%", orderData: 4 },
@@ -334,6 +350,7 @@ $(function () {
       [10, 25, 50, 100, "All"],
     ],
     stateSave: true,
+    stateDuration: 0,
     stateSaveCallback: function (settings, data) {
       utils.stateSaveCallback("query_log_table", data);
     },
@@ -345,6 +362,10 @@ $(function () {
         targets: -1,
         data: null,
         defaultContent: "",
+      },
+      {
+        targets: "_all",
+        render: $.fn.dataTable.render.text(),
       },
     ],
     initComplete: function () {
@@ -445,7 +466,7 @@ $(function () {
 
   $("#all-queries tbody").on("click", "button", function () {
     var data = tableApi.row($(this).parents("tr")).data();
-    if (data[4] === "2" || data[4] === "3") {
+    if (data[4] === "2" || data[4] === "3" || data[4] === "14") {
       utils.addFromQueryLog(data[2], "black");
     } else {
       utils.addFromQueryLog(data[2], "white");

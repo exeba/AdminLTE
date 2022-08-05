@@ -29,7 +29,6 @@ function eventsource() {
     return;
   }
 
-  // eslint-disable-next-line compat/compat
   var source = new EventSource("scripts/pi-hole/php/debug.php?&token=" + token + "&" + checked);
 
   // Reset and show field
@@ -40,6 +39,9 @@ function eventsource() {
     "message",
     function (e) {
       ta.append(e.data);
+      // scroll to the bottom of #output (most recent data)
+      var taBottom = ta.offset().top + ta.outerHeight(true);
+      $("html, body").scrollTop(taBottom - $(window).height());
     },
     false
   );
@@ -49,6 +51,7 @@ function eventsource() {
     "error",
     function () {
       source.close();
+      $("#output").removeClass("loading");
     },
     false
   );
@@ -57,5 +60,6 @@ function eventsource() {
 $("#debugBtn").on("click", function () {
   $("#debugBtn").prop("disabled", true);
   $("#upload").prop("disabled", true);
+  $("#output").addClass("loading");
   eventsource();
 });

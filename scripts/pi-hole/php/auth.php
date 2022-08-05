@@ -9,7 +9,7 @@
 require_once('func.php');
 $ERRORLOG = getenv('PHP_ERROR_LOG');
 if (empty($ERRORLOG)) {
-    $ERRORLOG = '/var/log/lighttpd/error.log';
+    $ERRORLOG = '/var/log/lighttpd/error-pihole.log';
 
     if (!file_exists($ERRORLOG) || !is_writable($ERRORLOG)) {
 	    $ERRORLOG = '/var/log/apache2/error.log';
@@ -30,14 +30,11 @@ function log_and_die($message) {
 }
 
 function check_cors() {
-    $setupVars = parse_ini_file(getPiholeFilePath("setupVars.conf"));
-    $ipv4 = isset($setupVars["IPV4_ADDRESS"]) ? explode("/", $setupVars["IPV4_ADDRESS"])[0] : $_SERVER['SERVER_ADDR'];
-    $ipv6 = isset($setupVars["IPV6_ADDRESS"]) ? explode("/", $setupVars["IPV6_ADDRESS"])[0] : $_SERVER['SERVER_ADDR'];
+    $ip = $_SERVER['SERVER_ADDR'];
 
     // Check CORS
     $AUTHORIZED_HOSTNAMES = array(
-        $ipv4,
-        $ipv6,
+        $ip,
         str_replace(array("[","]"), array("",""), $_SERVER["SERVER_NAME"]),
         "pi.hole",
         "localhost"
@@ -73,7 +70,7 @@ function check_cors() {
     $server_host = str_replace(array("[","]"), array("",""), $server_host);
 
     if(isset($_SERVER['HTTP_HOST']) && !in_array($server_host, $AUTHORIZED_HOSTNAMES)) {
-        log_and_die("Failed Host Check: " . $server_host .' vs '. join(', ', $AUTHORIZED_HOSTNAMES));
+        log_and_die("Failed Host Check: " . $server_host .' vs '. htmlspecialchars(join(', ', $AUTHORIZED_HOSTNAMES)));
     }
 
     if(isset($_SERVER['HTTP_ORIGIN'])) {
@@ -88,7 +85,7 @@ function check_cors() {
         $server_origin = str_replace(array("[","]","http://","https://"), array("","","",""), $server_origin);
 
         if(!in_array($server_origin, $AUTHORIZED_HOSTNAMES)) {
-            log_and_die("Failed CORS: " . htmlspecialchars($server_origin) .' vs '. join(', ', $AUTHORIZED_HOSTNAMES));
+            log_and_die("Failed CORS: " . htmlspecialchars($server_origin) .' vs '. htmlspecialchars(join(', ', $AUTHORIZED_HOSTNAMES)));
         }
         header("Access-Control-Allow-Origin: ${_SERVER['HTTP_ORIGIN']}");
     }

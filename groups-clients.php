@@ -70,10 +70,11 @@
                     <thead>
                     <tr>
                         <th>ID</th>
+                        <th></th>
                         <th title="Acceptable values are: IP address, subnet (CIDR notation), MAC address (AA:BB:CC:DD:EE:FF format) or host names.">Client</th>
                         <th>Comment</th>
                         <th>Group assignment</th>
-                        <th>Action</th>
+                        <th>&nbsp;</th>
                     </tr>
                     </thead>
                 </table>
@@ -88,7 +89,6 @@
 <script src="scripts/vendor/bootstrap-select.min.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/vendor/bootstrap-toggle.min.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/ip-address-sorting.js?v=<?=$cacheVer?>"></script>
-<script src="scripts/pi-hole/js/utils.js?v=<?=$cacheVer?>"></script>
 <script src="scripts/pi-hole/js/groups-clients.js?v=<?=$cacheVer?>"></script>
 
 <?php

@@ -13,33 +13,10 @@ require_once("scripts/pi-hole/php/database.php");
 require_once("scripts/pi-hole/php/auth.php");
 check_cors();
 
-$FTL_IP = "127.0.0.1";
-
 $data = array();
 
 // Common API functions
-if (isset($_GET['status']))
-{
-	$pistatus = pihole_execute('status web');
-	if(isset($pistatus[0]))
-    {
-        $pistatus = $pistatus[0];
-    }
-    else
-    {
-        $pistatus = null;
-    }
-	if ($pistatus === "1")
-	{
-		$data = array_merge($data, array("status" => "enabled"));
-	}
-	else
-	{
-		$data = array_merge($data, array("status" => "disabled"));
-	}
-}
-elseif (isset($_GET['enable']) && $auth)
-{
+if (isset($_GET['enable']) && $auth) {
 	if(isset($_GET["auth"]))
 	{
 	if($_GET["auth"] !== $pwhash)
@@ -160,17 +137,70 @@ elseif (isset($_GET['list']))
 
 	return;
 }
+elseif(isset($_GET['customdns']) && $auth)
+{
+	if (isset($_GET["auth"])) {
+		if ($_GET["auth"] !== $pwhash) {
+			die("Not authorized!");
+		}
+	} else {
+		// Skip token validation if explicit auth string is given
+		check_csrf($_GET['token']);
+	}
+
+	switch ($_GET["action"]) {
+		case 'get':
+			$data = echoCustomDNSEntries();
+			break;
+
+		case 'add':
+			$data = addCustomDNSEntry();
+			break;
+
+		case 'delete':
+			$data = deleteCustomDNSEntry();
+			break;
+
+		default:
+			die("Wrong action");
+	}
+}
+elseif(isset($_GET['customcname']) && $auth)
+{
+	if (isset($_GET["auth"])) {
+		if ($_GET["auth"] !== $pwhash) {
+			die("Not authorized!");
+		}
+	} else {
+		// Skip token validation if explicit auth string is given
+		check_csrf($_GET['token']);
+	}
+
+	switch ($_GET["action"]) {
+		case 'get':
+			$data = echoCustomCNAMEEntries();
+			break;
+
+		case 'add':
+			$data = addCustomCNAMEEntry();
+			break;
+
+		case 'delete':
+			$data = deleteCustomCNAMEEntry();
+			break;
+
+		default:
+			die("Wrong action");
+	}
+}
 
 // Other API functions
 require("api_FTL.php");
 
 header('Content-type: application/json');
-if(isset($_GET["jsonForceObject"]))
-{
-	echo json_encode($data, JSON_FORCE_OBJECT);
-}
-else
-{
-	echo json_encode($data);
+if(isset($_GET["jsonForceObject"])) {
+    echo json_encode($data, JSON_FORCE_OBJECT);
+} else {
+    echo json_encode($data);
 }
 ?>

@@ -6,7 +6,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 .layout-boxed {
-  background: url("../img/boxed-bg.jpg") repeat fixed;
+  background: url("../img/boxed-bg.png") repeat fixed;
 }
 
 .small-box span {
@@ -19,41 +19,66 @@
 
 @-webkit-keyframes Pulse {
   from {
-    color: #630030;
-    text-shadow: 0 0 2px transparent;
+    opacity: 0;
   }
 
   50% {
-    color: #e33100;
-    text-shadow: 0 0 5px #e33100;
+    opacity: 1;
   }
 
   to {
-    color: #630030;
-    text-shadow: 0 0 2px transparent;
+    opacity: 0;
   }
 }
 
 @keyframes Pulse {
   from {
-    color: #630030;
-    text-shadow: 0 0 2px transparent;
+    opacity: 0;
   }
 
   50% {
-    color: #e33100;
-    text-shadow: 0 0 5px #e33100;
+    opacity: 1;
   }
 
   to {
-    color: #630030;
-    text-shadow: 0 0 2px transparent;
+    opacity: 0;
   }
 }
 
+p#dhcpnotice[hidden] {
+  display: none;
+}
+
+.lookatme #dhcpnotice {
+  display: block;
+}
+
+td.lookatme {
+  display: table-cell;
+}
+
 .lookatme {
-  -webkit-animation: 2s infinite Pulse;
-  animation: 2s infinite Pulse;
+  color: #630030;
+  opacity: 1;
+  position: relative;
+  display: inline-block;
+}
+
+/* this pseudo element will be faded in and out in front /*
+/* of the lookatme element to create an efficient animation. */
+.lookatme:after {
+  color: #e33100;
+  text-shadow: 0 0 5px #e33100;
+  /* in the html, the lookatme-text attribute must */
+  /* contain the same text as the .lookatme element */
+  content: attr(lookatme-text);
+  padding: inherit;
+  position: absolute;
+  inset: 0 0 0 0;
+  z-index: 1;
+  /* 20 steps / 2 seconds = 10fps */
+  -webkit-animation: 2s infinite Pulse steps(20);
+  animation: 2s infinite Pulse steps(20);
 }
 
 .table-responsive {
@@ -215,21 +240,54 @@
 
 .chart-legend ul {
   list-style-type: none;
+  padding-left: 45px;
 }
 
 .chart-legend li {
   cursor: pointer;
-  word-break: break-all;
+  position: relative;
+  line-height: 1;
+  margin: 0 0 6px;
 }
 
 .chart-legend li span {
   display: inline-block;
-  width: 20px;
   height: 12px;
+}
+
+.colorBoxWrapper {
+  font-size: 14px;
+}
+
+.colorBoxWrapper:hover {
+  transform: scale(1.15);
+}
+
+.chart-legend li .colorBoxWrapper {
+  position: absolute;
+  width: 20px;
+  left: -20px;
+  top: 0;
+  line-height: 1;
+}
+
+.chart-legend li .legend-color-box {
+  display: none;
+  width: 12px;
   margin-right: 5px;
 }
 
-.strike {
+.chart-legend li .legend-label-text {
+  line-height: 1;
+  word-break: break-word;
+}
+
+.chart-legend li .legend-label-text:hover {
+  text-decoration: underline;
+}
+
+.strike,
+.strike span {
   text-decoration: line-through !important;
 }
 
@@ -271,9 +329,39 @@
   padding: 0 12px;
 }
 
+.user-panel {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.user-panel .image {
+  flex: 1 0 25%;
+  margin: 0 10px;
+  text-align: center;
+}
+
+.user-panel > .image > img {
+  max-width: 52px;
+  min-width: 30px;
+}
+
+.user-panel > .info {
+  padding: 0;
+  position: relative;
+  line-height: 1.05;
+  flex: 1 1 auto;
+  left: auto;
+}
+
+.user-panel > .info > p {
+  margin-bottom: 6px;
+}
+
 .user-panel > .info > span {
-  padding-right: 5px;
-  margin-top: 3px;
+  display: inline-block;
+  padding: 0;
+  margin: 2px 0;
   font-size: 11px;
 }
 
@@ -315,6 +403,7 @@
 }
 
 .sidebar-toggle-svg {
+  position: relative;
   color: #fff;
   float: left;
   background: none;
@@ -339,7 +428,7 @@
 /*** Icons grow on hover, but remain centered ***/
 .small-box:hover .icon {
   font-size: 90px; /* keep the same font-size, to avoid shifting the position */
-  transform: scale(106%);
+  transform: scale(1.06);
 }
 
 .list-status-0 {
@@ -376,4 +465,416 @@ td.details-control {
 
 .allowed-row td {
   background-color: rgb(70, 149, 74, 0.1);
+}
+
+.reload-box {
+  display: none;
+}
+.reload-box div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.reload-box span {
+  padding-right: 20px;
+}
+
+@media screen and (max-width: 991px) {
+  #domain-search-block {
+    display: block;
+  }
+  #domain {
+    margin: 5px 0;
+  }
+  #domain-search-block .input-group-btn {
+    margin: 5px 0;
+    text-align: center;
+  }
+  #domain-search-block .input-group-btn button {
+    margin: 0 2px;
+    border-radius: 3px;
+  }
+}
+
+/*** Login form ***/
+.form-control-feedback {
+  right: 12px;
+}
+
+.loginpage-logo {
+  width: 30%;
+}
+.layout-boxed .loginpage-logo {
+  width: 50%;
+}
+
+.login-options {
+  display: flex;
+  margin: 0 0 15px -15px;
+  flex-wrap: wrap;
+}
+
+.login-options div {
+  position: relative;
+  margin-left: 15px;
+}
+
+.login-options div:last-child {
+  margin-right: 2px;
+  margin-bottom: 0 !important;
+  flex: 0 1 auto;
+  font-size: 95%;
+}
+
+.pwd-field {
+  flex: 1 0 auto;
+}
+
+.login-help {
+  padding: 6px;
+  background: rgba(127, 127, 127, 0.05);
+  text-align: center;
+}
+
+.login-help p {
+  margin: 0;
+  font-size: clamp(11px, (100vw - 400px) / 45, 15px);
+  line-height: 1.6;
+}
+
+@media screen and (min-width: 768px) {
+  .layout-boxed:not(.sidebar-collapse) .login-help p {
+    font-size: clamp(11px, (min(100vw, 1250px) - 380px) / 47, 15px);
+  }
+
+  /* hide warning icon only when logged in and menu is not collapsed */
+  .logged-in:not(.sidebar-collapse) #top-warning-count {
+    display: none;
+  }
+}
+
+/*** Warning icon and count ***/
+.warning-count {
+  position: absolute;
+  display: inline-block;
+  text-align: center;
+  background: #e08e0b;
+  color: #fff;
+  line-height: 1;
+  padding: 0.25em 0.5em;
+  margin: -0.7em 4px;
+  border-radius: 2em;
+  right: 3em;
+  top: 50%;
+  font-size: 12px;
+}
+
+#top-warning-count {
+  top: 55%;
+  left: 50%;
+  right: unset;
+  margin: 0;
+}
+
+.treeview-menu .warning-count {
+  margin-right: 0;
+  font-size: 10px;
+}
+
+.menu-open > a > span.warning-count {
+  display: none;
+}
+
+/* hide submenu warning count during animation */
+li:not(.menu-open) .treeview-menu .warning-count {
+  display: none;
+}
+
+/* hide warning count when hover a collapsed sidebar */
+.sidebar-mini:not(.sidebar-mini-expand-feature).sidebar-collapse
+  .sidebar-menu
+  > li:hover
+  > a
+  > span.warning-count {
+  display: none !important;
+}
+
+/*** Accessibility - Add focus for checkboxes and radio buttons (icheck) ***/
+[class*="icheck-"] > input:first-child:focus + label::before {
+  outline: 1px #3c8dbc solid;
+  border-color: #3c8dbc;
+}
+
+/* Fix some datatables layout on small screens */
+@media screen and (max-width: 660px), screen and (min-width: 767px) and (max-width: 960px) {
+  #domainsTable_wrapper .table-responsive {
+    border: none;
+    overflow: unset;
+  }
+  #domainsTable {
+    border: 0;
+    box-sizing: border-box;
+  }
+  #domainsTable thead {
+    display: none;
+  }
+  #domainsTable tr {
+    display: flex;
+    padding: 5px 0;
+    flex-wrap: wrap;
+    box-sizing: border-box;
+    align-items: end;
+    border: 1px solid rgba(127, 127, 127, 0.4);
+    margin: 15px 0;
+    border-radius: 6px;
+  }
+  #domainsTable td {
+    flex: 1 1 auto;
+    width: 100px;
+    display: block;
+    border: none;
+    box-sizing: border-box;
+    order: 3;
+    text-align: right;
+    padding: 4px 8px;
+  }
+  #domainsTable td:nth-child(2n + 1) {
+    width: calc(100% - 120px);
+  }
+  #domainsTable td:nth-child(1) {
+    width: 40px;
+    order: 0;
+    text-align: left;
+    padding: 5px 0 30px;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+    margin-bottom: 5px;
+    flex: 0 0 auto;
+  }
+  #domainsTable td:nth-child(2) {
+    width: calc(100% - 40px);
+    order: 1;
+    text-align: left;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+    margin-bottom: 5px;
+  }
+  #domainsTable td:last-child {
+    width: 40px;
+    order: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+    margin-bottom: 5px;
+  }
+  #domainsTable td:nth-child(3),
+  #domainsTable td:nth-child(5) {
+    text-align: left;
+  }
+  #domainsTable td::before {
+    display: block;
+    font-weight: bold;
+    font-size: smaller;
+  }
+  #domainsTable td:nth-child(3)::before {
+    content: "Type:";
+  }
+  #domainsTable td:nth-child(5)::before {
+    content: "Comment:";
+  }
+  #domainsTable tr.selected td.select-checkbox::after,
+  #domainsTable tr.selected th.select-checkbox::after {
+    transform: rotate(45deg) translate(5px, 1px);
+  }
+}
+@media screen and (min-width: 767px) {
+  #domainsTable select.form-control {
+    padding: 0 0 0 5px;
+    width: auto;
+  }
+}
+@media screen and (max-width: 767px) {
+  #domainsTable th {
+    white-space: normal;
+  }
+}
+
+.icon-bounce {
+  display: inline-block;
+  position: relative;
+  animation: icon-bounce 2.4s 3 ease-in-out;
+  font-size: 1.6em;
+}
+
+@keyframes icon-bounce {
+  0%,
+  15%,
+  50%,
+  100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-5px);
+  }
+  30% {
+    transform: translateY(4px);
+  }
+  35% {
+    transform: translateY(-3px);
+  }
+  40% {
+    transform: translateY(2px);
+  }
+  45% {
+    transform: translateY(-1px);
+  }
+}
+
+.navbar-nav {
+  height: 50px;
+}
+
+.navbar-nav > .user-menu > .dropdown-menu > .user-body a {
+  background: transparent !important;
+}
+
+/*** Donate button - navbar ***/
+.main-header .navbar-custom-menu .user-footer .donate {
+  margin: 15px;
+  padding: 0.8em 1em;
+  width: calc(100% - 30px);
+  color: #fff;
+  background: #96060c;
+  border: none;
+  border-radius: 6px;
+}
+
+.main-header .navbar-custom-menu .user-footer .donate:hover,
+.main-header .navbar-custom-menu .user-footer .donate:active,
+.main-header .navbar-custom-menu .user-footer .donate:active:hover,
+.main-header .navbar-custom-menu .user-footer .donate:focus,
+.main-header .navbar-custom-menu .user-footer .donate:active:focus {
+  background: #f60d1a;
+}
+
+.navbar-custom-menu > .navbar-nav > li:nth-child(1) {
+  padding: 0 10px 0 0;
+}
+
+#apiTokenIframe {
+  width: 100%;
+  border: 0;
+  height: 500px;
+}
+
+#apiTokenModal pre {
+  background: #fff;
+}
+
+.no-danger-area {
+  margin: 0.5em 0 1em;
+  border-left: 2px solid green;
+  border-right: 2px solid green;
+  padding: 1px 1em 0.5em;
+  box-shadow: 0 0 2px -1px #bbb;
+  border-radius: 6px;
+}
+
+.danger-area {
+  margin: 0.5em 0 1em;
+  border-left: 2px solid red;
+  border-right: 2px solid red;
+  padding: 1px 1em 0.5em;
+  box-shadow: 0 0 2px -1px #bbb;
+  border-radius: 6px;
+}
+
+.menu-icon {
+  margin-right: 0.5em;
+}
+
+/* Datatables Select - bgcolor */
+:root {
+  --datatable-bgcolor: #e0e8ee;
+}
+
+div.dt-buttons {
+  margin: 2px 0 5px;
+}
+@media screen and (max-width: 767px) {
+  div.dt-buttons {
+    margin-bottom: 5px;
+    float: none;
+    text-align: center;
+  }
+}
+
+/* Datatables Select - checkbox outline */
+table.dataTable tbody td.select-checkbox::before,
+table.dataTable tbody th.select-checkbox::before {
+  border-color: currentColor;
+  border-radius: 2px;
+  border-width: 2px;
+  width: 13px;
+  height: 13px;
+}
+
+table.dataTable tr.selected td.select-checkbox::after,
+table.dataTable tr.selected th.select-checkbox::after {
+  color: currentColor;
+  content: "";
+  text-shadow: none;
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  width: 4px;
+  height: 8px;
+  transform: rotate(45deg) translate(7px, 3px);
+}
+
+.datatable-bt {
+  padding: 3px 8px;
+}
+
+.datatable-bt span {
+  font-size: 17px;
+}
+
+/* Datatables Select - selected row bgcolor */
+table.dataTable tbody > tr.selected,
+table.dataTable tbody > tr > .selected {
+  background: none;
+  background-image: linear-gradient(var(--datatable-bgcolor), var(--datatable-bgcolor));
+}
+
+#messagesTable pre {
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+#output {
+  position: relative;
+  margin: 5px 0;
+  min-height: 36px;
+  padding: 4px 8px;
+}
+
+.loading::before {
+  content: " ";
+  position: absolute;
+  padding: 1em;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  line-height: 1;
+  background: rgba(35, 60, 85, 0.8);
+  box-shadow: 0 0 6px -3px rgba(0, 0, 0, 0.5);
+}
+.loading::after {
+  content: "\1F553\FE0E  Loading...";
+  position: absolute;
+  padding: 1em;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  color: #fff;
+  line-height: 1;
+  animation: 2s infinite Pulse steps(20);
 }

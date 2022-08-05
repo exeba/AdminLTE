@@ -20,19 +20,20 @@
     "prettier:fix": "prettier --write \"style/*.css\" \"style/themes/*.css\" \"scripts/pi-hole/**/*.js\"",
     "xo": "xo",
     "xo:fix": "npm run xo -- --fix",
-    "test": "npm run xo"
+    "test": "npm run prettier:check && npm run xo",
+    "testpr": "npm run prettier:fix && git diff --ws-error-highlight=all --color=always --exit-code && npm run xo"
   },
   "devDependencies": {
-    "autoprefixer": "^10.3.7",
-    "eslint-plugin-compat": "^3.13.0",
-    "postcss": "^8.3.9",
-    "postcss-cli": "^9.0.1",
-    "prettier": "2.4.1",
-    "xo": "^0.45.0"
+    "autoprefixer": "^10.4.7",
+    "eslint-plugin-compat": "^4.0.2",
+    "postcss": "^8.4.14",
+    "postcss-cli": "^10.0.0",
+    "prettier": "2.7.1",
+    "xo": "^0.50.0"
   },
   "browserslist": [
     "defaults",
-    "Explorer >= 11"
+    "not IE 11"
   ],
   "prettier": {
     "arrowParens": "avoid",
@@ -51,7 +52,7 @@
       "plugin:compat/recommended"
     ],
     "parserOptions": {
-      "ecmaVersion": 5,
+      "ecmaVersion": "latest",
       "sourceType": "script"
     },
     "prettier": true,
@@ -75,6 +76,7 @@
       ],
       "no-alert": "off",
       "no-console": "error",
+      "no-else-return": "off",
       "no-negated-condition": "off",
       "no-var": "off",
       "object-shorthand": "off",
