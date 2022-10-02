@@ -10,6 +10,7 @@
 var table;
 var groups = [];
 var token = $("#token").text();
+var GETDict = {};
 
 function getGroups() {
   $.post(
@@ -24,6 +25,13 @@ function getGroups() {
 }
 
 $(function () {
+  window.location.search
+    .substr(1)
+    .split("&")
+    .forEach(function (item) {
+      GETDict[item.split("=")[0]] = item.split("=")[1];
+    });
+
   $("#btnAdd").on("click", addAdlist);
 
   utils.setBsSelectDefaults();
@@ -89,7 +97,7 @@ function format(data) {
     (data.date_updated > 0
       ? utils.datetimeRelative(data.date_updated) +
         "&nbsp;(" +
-        utils.datetime(data.date_updated) +
+        utils.datetime(data.date_updated, false) +
         ")"
       : "N/A") +
     '</td></tr><tr class="dataTables-child"><td>Number of domains on this list:&nbsp;&nbsp;</td><td>' +
@@ -289,6 +297,11 @@ function initTable() {
 
       var applyBtn = "#btn_apply_" + data.id;
 
+      // Highlight row (if url parameter "adlistid=" is used)
+      if ("adlistid" in GETDict && data.id === parseInt(GETDict.adlistid, 10)) {
+        $(row).find("td").addClass("highlight");
+      }
+
       var button =
         '<button type="button" class="btn btn-danger btn-xs" id="deleteAdlist_' +
         data.id +
@@ -370,6 +383,18 @@ function initTable() {
       data.columns[0].visible = false;
       // Apply loaded state to table
       return data;
+    },
+    initComplete: function () {
+      if ("adlistid" in GETDict) {
+        var pos = table
+          .column(0, { order: "current" })
+          .data()
+          .indexOf(parseInt(GETDict.adlistid, 10));
+        if (pos >= 0) {
+          var page = Math.floor(pos / table.page.info().length);
+          table.page(page).draw(false);
+        }
+      }
     },
   });
 
@@ -517,6 +542,7 @@ function addAdlist() {
         $("#new_comment").val("");
         table.ajax.reload();
         table.rows().deselect();
+        $("#new_address").focus();
       } else {
         utils.showAlert("error", "", "Error while adding new adlist: ", response.message);
       }
