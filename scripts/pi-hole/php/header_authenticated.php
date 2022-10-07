@@ -36,28 +36,6 @@ if (isset($_POST['field'])) {
     }
 }
 
-// Return memory usage to show on status block
-function getMemUsage()
-{
-    $data = explode("\n", file_get_contents('/proc/meminfo'));
-    $meminfo = array();
-    if (count($data) > 0) {
-        foreach ($data as $line) {
-            $expl = explode(':', $line);
-            if (count($expl) == 2) {
-                // remove " kB" from the end of the string and make it an integer
-                $meminfo[$expl[0]] = intval(trim(substr($expl[1], 0, -3)));
-            }
-        }
-        $memused = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
-        $memusage = $memused / $meminfo['MemTotal'];
-    } else {
-        $memusage = -1;
-    }
-
-    return $memusage;
-}
-
 // Try to get temperature value from different places (OS dependent)
 // - return an array, containing the temperature and limit.
 function getTemperature()
@@ -123,11 +101,16 @@ foreach ($loaddata as $key => $value) {
 
 // Get number of processing units available to PHP
 // (may be less than the number of online processors)
-$nproc = shell_exec('nproc');
-if (!is_numeric($nproc)) {
-    $cpuinfo = file_get_contents('/proc/cpuinfo');
-    preg_match_all('/^processor/m', $cpuinfo, $matches);
-    $nproc = count($matches[0]);
+
+if (file_exists("/proc/cpuinfo")) {
+    $nproc = shell_exec('nproc');
+    if(!is_numeric($nproc)) {
+        $cpuinfo = file_get_contents('/proc/cpuinfo');
+        preg_match_all('/^processor/m', $cpuinfo, $matches);
+        $nproc = count($matches[0]);
+    }
+} else {
+    $nproc = shell_exec('sysctl -n hw.ncpu');
 }
 
 // Get memory usage
