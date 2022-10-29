@@ -271,9 +271,9 @@ if ($_POST['action'] == 'get_groups') {
             $addresses = array();
             $names = array();
             while ($res_ips = $query_ips->fetchArray(SQLITE3_ASSOC)) {
-                array_push($addresses, utf8_encode($res_ips['ip']));
+                array_push($addresses, mb_convert_encoding($res_ips['ip'], 'UTF-8', 'ISO-8859-1'));
                 if ($res_ips['name'] !== null) {
-                    array_push($names, utf8_encode($res_ips['name']));
+                    array_push($names, mb_convert_encoding($res_ips['name'], 'UTF-8', 'ISO-8859-1'));
                 }
             }
             $query_ips->finalize();
@@ -610,11 +610,11 @@ if ($_POST['action'] == 'get_groups') {
                 if (!validDomain($domain, $msg)) {
                     // This is the case when convertUnicodeToIDNA() modified the string
                     if ($input !== $domain && strlen($domain) > 0) {
-                        $errormsg = 'Domain '.htmlentities($input).' (converted to "'.htmlentities(utf8_encode($domain)).'") is not a valid domain because '.$msg.'.';
+                        $errormsg = 'Domain '.htmlentities($input).' (converted to "'.htmlentities(mb_convert_encoding($domain, 'UTF-8', 'ISO-8859-1')).'") is not a valid domain because '.$msg.'.';
                     } elseif ($input !== $domain) {
                         $errormsg = 'Domain '.htmlentities($input).' is not a valid domain because '.$msg.'.';
                     } else {
-                        $errormsg = 'Domain '.htmlentities(utf8_encode($domain)).' is not a valid domain because '.$msg.'.';
+                        $errormsg = 'Domain '.htmlentities(mb_convert_encoding($domain, 'UTF-8', 'ISO-8859-1')).' is not a valid domain because '.$msg.'.';
                     }
 
                     throw new Exception($errormsg.'<br>Added '.$added.' out of '.$total.' domains');
@@ -686,9 +686,9 @@ if ($_POST['action'] == 'get_groups') {
         $difference = $after - $before;
         if ($total === 1) {
             if ($difference !== 1) {
-                $msg = 'Not adding '.htmlentities(utf8_encode($domain)).' as it is already on the list';
+                $msg = 'Not adding '.htmlentities(mb_convert_encoding($domain, 'UTF-8', 'ISO-8859-1')).' as it is already on the list';
             } else {
-                $msg = 'Added '.htmlentities(utf8_encode($domain));
+                $msg = 'Added '.htmlentities(mb_convert_encoding($domain, 'UTF-8', 'ISO-8859-1'));
             }
         } else {
             if ($difference !== $total) {
@@ -1148,9 +1148,9 @@ if ($_POST['action'] == 'get_groups') {
         $difference = $after - $before;
         if ($total === 1) {
             if ($difference !== 1) {
-                $msg = 'Not adding '.htmlentities(utf8_encode($domain)).' as it is already on the list';
+                $msg = 'Not adding '.htmlentities(mb_convert_encoding($domain, 'UTF-8', 'ISO-8859-1')).' as it is already on the list';
             } else {
-                $msg = 'Added '.htmlentities(utf8_encode($domain));
+                $msg = 'Added '.htmlentities(mb_convert_encoding($domain, 'UTF-8', 'ISO-8859-1'));
             }
         } else {
             if ($difference !== $total) {

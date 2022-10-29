@@ -41,7 +41,7 @@ if (isset($_GET['network']) && $auth) {
         while ($network_addresses !== false && $network_address = $network_addresses->fetchArray(SQLITE3_ASSOC)) {
             array_push($res['ip'], $network_address['ip']);
             if ($network_address['name'] !== null) {
-                array_push($res['name'], utf8_encode($network_address['name']));
+                array_push($res['name'], mb_convert_encoding($network_address['name'], 'UTF-8', 'ISO-8859-1'));
             } else {
                 array_push($res['name'], '');
             }
@@ -49,7 +49,7 @@ if (isset($_GET['network']) && $auth) {
         $network_addresses->finalize();
 
         // UTF-8 encode vendor
-        $res['macVendor'] = utf8_encode($res['macVendor']);
+        $res['macVendor'] = mb_convert_encoding($res['macVendor'], 'UTF-8', 'ISO-8859-1');
         array_push($network, $res);
     }
     $results->finalize();
@@ -112,10 +112,10 @@ if (isset($_GET['getAllQueries']) && $auth) {
                 // Format, encode, transform each field (if necessary).
                 $time = $row['timestamp'];
                 $query_type = getQueryTypeStr($row['type']); // Convert query type ID to name
-                $domain = utf8_encode(str_replace('~', ' ', $row['domain']));
+                $domain =  mb_convert_encoding(str_replace('~', ' ', $row['domain']), 'UTF-8', 'ISO-8859-1');
                 $client = $row['client'];
                 $status = $row['status'];
-                $destination = utf8_encode($row['forward']);
+                $destination = mb_convert_encoding($row['forward'], 'UTF-8', 'ISO-8859-1');
                 $reply_type = $row['reply_type'];
                 $reply_time = $row['reply_time'];
                 $dnssec = $row['dnssec'];
@@ -202,7 +202,7 @@ if (isset($_GET['topDomains']) && $auth) {
     if (!is_bool($results)) {
         while ($row = $results->fetchArray()) {
             // Convert domain to lower case UTF-8
-            $c = utf8_encode(strtolower($row[0]));
+            $c = mb_convert_encoding(strtolower($row[0]), 'UTF-8', 'ISO-8859-1');
             if (array_key_exists($c, $domains)) {
                 // Entry already exists, add to it (might appear multiple times due to mixed capitalization in the database)
                 $domains[$c] += intval($row[1]);
@@ -242,7 +242,7 @@ if (isset($_GET['topAds']) && $auth) {
 
     if (!is_bool($results)) {
         while ($row = $results->fetchArray()) {
-            $addomains[utf8_encode($row[0])] = intval($row[1]);
+            $addomains[mb_convert_encoding($row[0], 'UTF-8', 'ISO-8859-1')] = intval($row[1]);
         }
     }
     $result = array('top_ads' => $addomains);
@@ -408,7 +408,7 @@ if (isset($_GET['messages']) && $auth) {
         // Furthermore, convert special characters to HTML entities to prevent XSS attacks.
         foreach ($res as $key => $value) {
             if (is_string($value)) {
-                $res[$key] = htmlspecialchars(utf8_encode($value));
+                $res[$key] = htmlspecialchars(mb_convert_encoding($value, 'UTF-8', 'ISO-8859-1'));
             }
         }
         array_push($messages, $res);
