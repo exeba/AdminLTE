@@ -34,7 +34,7 @@ function echoEvent($datatext)
     echo 'data: '.implode("\ndata: ", explode("\n", $datatext))."\n\n";
 }
 
-$proc = popen('sudo pihole -g', 'r');
+$proc = popen('/usr/local/bin/sudo pihole -g', 'r');
 while (!feof($proc)) {
     echoEvent(fread($proc, 4096));
 }

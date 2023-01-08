@@ -238,7 +238,7 @@ if (isset($_GET['tab']) && in_array($_GET['tab'], array('sysadmin', 'dns', 'piho
                                             <?php
                                             $FTLpid = intval(pidofFTL());
 if ($FTLpid !== 0) {
-    $FTLversion = exec('/usr/bin/pihole-FTL version'); ?>
+    $FTLversion = exec('/usr/local/bin/pihole-FTL version'); ?>
                                             <table class="table table-striped table-bordered nowrap">
                                                 <tbody>
                                                     <tr>
@@ -256,7 +256,7 @@ if ($FTLpid !== 0) {
                                                     </tr>
                                                     <tr>
                                                         <th scope="row">User / Group:</th>
-                                                        <td><?php print_r(get_FTL_data($FTLpid, 'euser')); ?> / <?php print_r(get_FTL_data($FTLpid, 'egroup')); ?></td>
+                                                        <td><?php print_r(get_FTL_data($FTLpid, 'user')); ?> / <?php print_r(get_FTL_data($FTLpid, 'group')); ?></td>
                                                     </tr>
                                                     <tr>
                                                         <th scope="row">Total CPU utilization:</th>

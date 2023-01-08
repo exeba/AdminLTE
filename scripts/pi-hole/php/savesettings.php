@@ -424,7 +424,7 @@ if (isset($_POST['field'])) {
             if (isset($_POST['webtheme'])) {
                 global $available_themes;
                 if (array_key_exists($_POST['webtheme'], $available_themes)) {
-                    exec('sudo pihole -a theme '.$_POST['webtheme']);
+                    exec('/usr/local/bin/sudo pihole -a theme '.$_POST['webtheme']);
                 }
             }
             $success .= 'The webUI settings have been updated';

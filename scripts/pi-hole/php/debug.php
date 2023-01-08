@@ -52,7 +52,7 @@ function echoEvent($datatext)
 }
 
 // Execute "pihole" using Web option
-$command = 'export TERM=dumb && sudo pihole -d -w';
+$command = 'export TERM=dumb && /usr/local/bin/sudo pihole -d -w';
 
 // Add auto-upload option
 if (isset($_GET['upload'])) {

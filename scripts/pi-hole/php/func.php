@@ -208,7 +208,7 @@ if (!function_exists('hash_equals')) {
  *
  * would execute command
  *
- *   sudo pihole -h
+ *   /usr/local/bin/sudo pihole -h
  *
  * and returns output of that command as a string.
  *
@@ -219,7 +219,7 @@ function pihole_execute($argument_string)
     $escaped = escapeshellcmd($argument_string);
     $output = null;
     $return_status = -1;
-    $command = 'sudo pihole '.$escaped;
+    $command = '/usr/local/bin/sudo pihole '.$escaped;
     exec($command, $output, $return_status);
     if ($return_status !== 0) {
         trigger_error("Executing {$command} failed.", E_USER_WARNING);
@@ -736,7 +736,7 @@ function convertUnicodeToIDNA($IDNA)
 // Return PID of FTL (used in settings.php)
 function pidofFTL()
 {
-    return shell_exec('pidof pihole-FTL');
+    return shell_exec('/usr/local/bin/pidof pihole-FTL');
 }
 
 // Get FTL process information (used in settings.php)
